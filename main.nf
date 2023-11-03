@@ -231,7 +231,7 @@ include {
          stripy;
          // SMN caller tools
          prepareManifestSMN;
-         smnCopyNumberCaller } from "${modules_dir}/preprocess.DNA.modules.v2_simple_test.nf" 
+         smnCopyNumberCaller } from modules/KGVejle.DNA.modules" 
 
 
 workflow PREPROCESS {

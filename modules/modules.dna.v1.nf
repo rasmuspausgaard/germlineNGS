@@ -207,15 +207,16 @@ outputDir="${tank_storage}/alignedData/${params.genome}/${params.outdir}/"
 }
 
 
-Channel
+
+channel
     .fromPath(params.intervals_list)
     .map { it -> tuple(it.baseName,it)}
-.set { HTC_interval_list }
+    .set { haplotypecallerIntervalList }
 
 
 log.info """\
 ===============================================
-Clinical Genetics Vejle: NF DSL2 modules v2.
+Clinical Genetics Vejle: NF DNA modules v1
 Parameter information 
 ===============================================
 Genome       : $params.genome
@@ -778,9 +779,9 @@ process manta {
 
     input:
     tuple val(sampleID), path(aln), path(index)
-//    path(genome_fasta)
-//    path(genome_fasta_fai)
-//    path(genome_fasta_dict)
+    //    path(genome_fasta)
+    //    path(genome_fasta_fai)
+    //    path(genome_fasta_dict)
 
     output:
     //path("manta/results/*")
@@ -859,9 +860,9 @@ process lumpy {
     input:
 
     tuple val(sampleID), path(aln), path(index)
-//    path(genome_fasta)
-//    path(genome_fasta_fai)
-//    path(genome_fasta_dict)
+    //    path(genome_fasta)
+    //    path(genome_fasta_fai)
+    //    path(genome_fasta_dict)
 
     output:
     tuple val(sampleID), path("${sampleID}.Lumpy_altmode_step1.vcf"), emit: lumpyForSVDB
@@ -1106,3 +1107,189 @@ process smnCopyNumberCaller {
 }
 
 
+
+/////////////////////////////////////////////////////////////
+/// SUBWORKFLOWS meta r1 r2 input channel///////
+/////////////////////////////////////////////////////////////
+
+workflow SUB_PREPROCESS {
+
+    take:
+    fq_read_input
+    
+    main:
+    inputFiles_symlinks_fq(fq_read_input)
+    fastq_to_ubam(fq_read_input)
+    markAdapters(fastq_to_ubam.out[0])
+    align(markAdapters.out)
+    markDup_cram(align.out)
+    //markDup_v3_cram.out.markDup_output.view()
+    emit:
+    finalAln=markDup_cram.out.markDup_output
+}
+
+
+/////////////////////////////////////////////////////////////
+/// SUBWORKFLOWS meta-aln-index input channel///////
+/////////////////////////////////////////////////////////////
+
+workflow SUB_VARIANTCALL {
+    take:
+    meta_aln_index  // sampleID, aln, index
+    main:
+    haplotypecaller(meta_aln_index)
+    haplotypecaller.out.sample_gvcf
+    .map{ tuple(it.simpleName, it) }
+    .set { gvcf_list }
+    
+    if (panelID=="AV1"){
+        gvcf_list
+            .filter {it =~/_CV6/}
+            .map{" -V "+ it[1] }
+            .collectFile(name: "collectfileTEST_CV6.txt", newLine: false)
+            .map {it.text.trim()}
+            .map { tuple("CV6",it) }
+            .set { cv6_gatk }
+
+        gvcf_list
+            .filter {it =~/_FSGS1/}
+            .map{" -V "+ it[1] }
+            .collectFile(name: "collectfileTEST_FSGS1.txt", newLine: false)
+            .map {it.text.trim()}
+            .map { tuple("FSGS1",it) }
+            .set {fsgs1_gatk}
+
+        gvcf_list
+            .filter {it =~/_NV2/}
+            .map{" -V "+ it[1] }
+            .collectFile(name: "collectfileTEST_NV1.txt", newLine: false)
+            .map {it.text.trim()}
+            .map { tuple("NV2",it) }
+            .set {nv2_gatk}
+
+        gvcf_list
+            .filter {it =~/_FH1/}
+            .map{" -V "+ it[1] }
+            .collectFile(name: "collectfileTEST_FH1.txt", newLine: false)
+            .map {it.text.trim()}
+            .map { tuple("FH1",it) }
+            .set {fh1_gatk}
+
+        gvcf_list
+            .filter {it =~/_GV4/}
+            .map{" -V "+ it[1] }
+            .collectFile(name: "collectfileTEST_GV3.txt", newLine: false)
+            .map {it.text.trim()}
+            .map { tuple("GV4",it) }
+            .set {gv4_gatk}
+
+        gvcf_list
+            .filter {it =~/_OBS/}
+            .map{" -V "+ it[1] }
+            .collectFile(name: "collectfileTEST_OBS.txt", newLine: false)
+            .map {it.text.trim()}
+            .map { tuple("OBS",it) }
+            .set {obs_gatk}
+
+        gvcf_list
+            .filter {it =~/AV1/}
+            .map{" -V "+ it[1] }
+            .collectFile(name: "collectfileTEST_AV1.txt", newLine: false)
+            .map {it.text.trim()}
+            .map { tuple("AV1_ALL",it) }
+            .set {av1_gatk}
+
+        cv6_gatk.concat(fsgs1_gatk).concat(nv2_gatk).concat(fh1_gatk).concat(gv4_gatk).concat(av1_gatk).concat(obs_gatk)
+                .set { gvcfsamples_for_GATK }
+
+    }
+
+    if (panelID=="WES_subpanel"){
+        gvcf_EV8_ONK
+                .filter {it =~/_ONK/}
+                .map{" -V "+ it[1] }
+                .collectFile(name: "collectfileTEST_EV8_ONK.txt", newLine: false)
+                .map {it.text.trim()}
+                .map { tuple("EV8_ONK",it) }
+                .set {onk_ev8_gatk}
+
+        gvcf_EV8_ALM
+                .filter {it =~/_ALM/}
+                .map{" -V "+ it[1] }
+                .collectFile(name: "collectfileTEST_EV8_ALM.txt", newLine: false)
+                .map {it.text.trim()}
+                .map { tuple("EV8_ALM",it) }
+                .set {alm_ev8_gatk}
+
+        onk_ev8_gatk.concat(alm_ev8_gatk)
+                .set {gvcfsamples_for_GATK}
+    }
+
+    if (panelID != "AV1" && panelID!= "WES_subpanel") {
+        sample_gvcf_list
+            .map{" -V "+ it[1] }
+            .collectFile(name: "collectfileNOTAV1.txt", newLine: false)
+            .map {it.text.trim()}
+            .map { tuple(panelID, it) }
+            .set {gvcfsamples_for_GATK}
+    }
+
+    jointgenotyping(gvcfsamples_for_GATK)
+    
+    if (panelID=="AV1"){
+        spliceAI(jointgenotyping.out.spliceAI_input)
+    }
+}
+
+workflow SUB_VARIANTCALL_WGS {
+    take:
+    meta_aln_index
+    main:
+    haplotypecallerSplitIntervals(meta_aln_index.combine(haplotypecallerIntervalList))
+    mergeScatteredGVCF(haplotypecallerSplitIntervals.out)
+    
+    mergeScatteredGVCF.out.sample_gvcf_list_scatter
+    .map{" -V "+ it }
+    .set{gvcflist_scatter_done}
+
+    gvcflist_scatter_done
+    .collectFile(name: "collectfileTEST_scatter.txt", newLine: false)
+    .map {it.text.trim()}.set {gvcfsamples_for_GATK_scatter}
+
+    jointgenoScatter(gvcfsamples_for_GATK_scatter)
+}
+
+workflow SUB_CNV_SV {
+    take:
+    meta_aln_index
+    main:
+    manta(meta_aln_index)
+    filter_manta(manta.out.manta)   // mantafiltered for SVDB
+    lumpy(meta_aln_index)
+    cnvkit(meta_aln_index)
+    cnvkitExportFiles(cnvkit.out.CNVcalls, cnvkit.out.CNVcnr)
+    tiddit361(meta_aln_index)
+    merge4callerSVDB(filter_manta.out.mantaForSVDB.join(lumpy.out.lumpyForSVDB).join(cnvkitExportFiles.out.cnvkitForSVDB).join(tiddit361.out.tidditForSVDB))
+}
+
+workflow SUB_STR {
+    take:
+    meta_aln_index
+    main:
+    expansionHunter(meta_aln_index) 
+    stripy(meta_aln_index)
+}
+
+workflow SUB_SMN {
+    take:
+    meta_aln_index
+    main:
+    
+    meta_aln_index
+    .map {"TEST"+'\t'+it[1]}
+    .collectFile(name: "smncaller_manifest.txt", newLine: true, storeDir: "${launchDir}/")
+    .set{smn_input_ch}
+    
+    prepareManifestSMN(smn_input_ch)
+    smnCopyNumberCaller(prepareManifestSMN.out)
+}

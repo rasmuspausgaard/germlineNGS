@@ -779,16 +779,13 @@ process manta {
 
     input:
     tuple val(sampleID), path(aln), path(index)
-    //    path(genome_fasta)
-    //    path(genome_fasta_fai)
-    //    path(genome_fasta_dict)
 
     output:
-    //path("manta/results/*")
+
     path("${sampleID}.manta.*.{vcf,vcf.gz,gz.tbi}")
     
-    tuple val(sampleID), path("${sampleID}.manta.INVconverted.vcf"), emit: manta
-
+   //  tuple val(sampleID), path("${sampleID}.manta.INVconverted.vcf"), emit: manta
+    tuple val(sampleID), path("${sampleID}.manta.diploidSV.vcf.gz"), path("${sampleID}.manta.diploidSV.vcf.gz.tbi"), emit: manta
     script:
     """
     singularity run -B ${s_bind} ${simgpath}/manta1.6_strelka2.9.10.sif configManta.py \
@@ -814,15 +811,12 @@ process manta {
     mv manta/results/variants/diploidSV.vcf.gz \
     ${sampleID}.manta.diploidSV.vcf.gz
     
-    python2 /data/shared/programmer/manta1.6/libexec/convertInversion.py \
-    /usr/local/bin/samtools \
-    ${genome_fasta} \
-    ${sampleID}.manta.diploidSV.vcf.gz > ${sampleID}.manta.INVconverted.vcf
+    mv manta/results/variants/diploidSV.vcf.gz.tbi \
+    ${sampleID}.manta.diploidSV.vcf.gz.tbi
 
     gzip -dc ${sampleID}.manta.diploidSV.vcf.gz > ${sampleID}.manta.diploidSV.vcf
     
-    mv manta/results/variants/diploidSV.vcf.gz.tbi \
-    ${sampleID}.manta.diploidSV.vcf.gz.tbi
+
     """
 }
 
@@ -830,21 +824,21 @@ process filter_manta {
     tag "$sampleID"
     errorStrategy 'ignore'
 
-    publishDir "${inhouse_SV}/manta/filtered/", mode: 'copy', pattern: "*.INVconverted.filtered.vcf"
-    publishDir "${params.outdir}/structuralVariants/manta/", mode: 'copy', pattern: "*.INVconverted.filtered.vcf"
+    publishDir "${inhouse_SV}/manta/filtered/", mode: 'copy', pattern: "*.filtered.vcf"
+    publishDir "${params.outdir}/structuralVariants/manta/", mode: 'copy', pattern: "*.filtered.vcf"
     
     input:
-    tuple val(sampleID), path(vcf)
+    tuple val(sampleID), path(vcf), path(idx)
 
     output:
-    tuple val(sampleID), path("${sampleID}.manta.INVconverted.filtered.vcf"), emit: mantaForSVDB
+    tuple val(sampleID), path("${sampleID}.manta.filtered.vcf"), emit: mantaForSVDB
     
     script:
     """
     ${gatk_exec} SelectVariants -R ${genome_fasta} \
     -V ${vcf} \
     --exclude-filtered \
-    -O ${sampleID}.manta.INVconverted.filtered.vcf
+    -O ${sampleID}.manta.filtered.vcf
     """
 }
 

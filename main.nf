@@ -31,9 +31,6 @@ params.outdir                   = "${launchDir.baseName}.Results"
 params.rundir                   = "${launchDir.baseName}"
 params.intervals_list           ="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
 
-params.fastqInput
-
-
 switch (params.server) {
     case 'lnx01':
         modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules";

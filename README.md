@@ -56,4 +56,10 @@ Analyze samples in samplesheet, starting with CRAM:
    
     nextflow run KGVejle/wgsPipeline -r main --samplesheet /path/to/samplesheet/
 
+Run the script with --help to see available options and default parameters:
+
+    nextflow run KGVejle/wgsPipeline -r main --help
+
+
+
 

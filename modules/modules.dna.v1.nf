@@ -775,7 +775,6 @@ process manta {
 
     cpus 10
     maxForks 3
-    conda '/data/shared/programmer/miniconda3/envs/py2'
 
     input:
     tuple val(sampleID), path(aln), path(index)

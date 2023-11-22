@@ -14,14 +14,17 @@ params.preprocessOnly           =null
 
 params.hg38v1                   =null
 params.hg38v2                   =null
-params.outputBam                =null
 params.cram                     =null
 params.fastq                    =null
 params.archiveStorage           =null
 params.lnx01_storage            =null
 params.skipSpliceAI             =null
 params.fastqInput               =null
-             
+params.skipSV                   =null
+params.skipVariants             =null
+params.skipQC                   =null
+params.skipSTR                  =null
+params.skipSMN                  =null
 //Preset parameters:
 params.gatk                     ="new"
 params.panel                    = "WGS" // preset for WGS analysis

@@ -92,7 +92,7 @@ if (!params.cram && params.fastqInput||params.fastq) {
     .map { it -> [it[0], file(it[1][0]),file(it[1][1])] }
     .set { read_pairs_ch }
 }
-read_pairs_ch.view()
+
 
 if (params.cram) {
 

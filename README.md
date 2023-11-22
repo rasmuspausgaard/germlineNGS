@@ -6,8 +6,11 @@ The only requirement is a samplesheet containing 4 columns without headerline in
 famID/projektNavn, NPN, Relation, SampleStatus
 
 Example samplesheet for standard trio:
+
 johnDoe 123456789012    index   affected
+
 johnDoe 234567890123    mater   normal
+
 johnDoe 345678901234    pater   normal
 
 The above information can usually be extracted directly from the sample overview excel file

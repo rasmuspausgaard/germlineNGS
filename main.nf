@@ -170,13 +170,13 @@ if (!params.samplesheet && params.cram) {
 
 
 
-if (params.samplesheet && !params.cram && params.fastqInput) {
+if (params.samplesheet && !params.cram && (params.fastqInput||params.fastq)) {
     full_samplesheet.join(read_pairs_ch)
     .map {tuple (it[0]+"_"+it[1]+"_"+it[2],it[4],it[5])}
     .set { fq_read_input }
 }
 
-if (params.samplesheet && !params.fastqInput) {
+if (params.samplesheet && !params.fastqInput && !params.fastq) {
 
     full_samplesheet.join(sampleID_cram).join(sampleID_crai)
     .map {tuple (it[0]+"_"+it[1]+"_"+it[2],it[4],it[5])}
@@ -194,7 +194,6 @@ channel
 
 include { 
          // Symlinks:
-         inputFiles_symlinks_fq;
          inputFiles_symlinks_cram;
          // Preprocess tools:
          //QC tools
@@ -229,12 +228,10 @@ workflow QC {
 workflow {
 
     if (params.preprocessOnly) {
-        inputFiles_symlinks_fq(fq_read_input)
         SUB_PREPROCESS(fq_read_input)
     }
 
-    if (params.fastqInput) {
-        inputFiles_symlinks_fq(fq_read_input)
+    if (params.fastqInput||params.fastq) {
         SUB_PREPROCESS(fq_read_input)
         SUB_VARIANTCALL_WGS(SUB_PREPROCESS.out.finalAln)
         SUB_CNV_SV(SUB_PREPROCESS.out.finalAln)
@@ -242,7 +239,7 @@ workflow {
         SUB_SMN(SUB_PREPROCESS.out.finalAln)
     }
 
-    if (!params.fastqInput) {
+    if (!params.fastqInput && !params.fastq) {
         inputFiles_symlinks_cram(meta_aln_index)
         SUB_VARIANTCALL_WGS(meta_aln_index)
         SUB_CNV_SV(meta_aln_index)

@@ -770,12 +770,11 @@ process jointgenoScatter{
 process manta {
     errorStrategy 'ignore'
     tag "$sampleID"
-    publishDir "${inhouse_SV}/manta/raw_calls/", mode: 'copy', pattern: "*.manta.INVconverted.vcf"
+    publishDir "${inhouse_SV}/manta/raw_calls/", mode: 'copy', pattern: " ${sampleID}.manta.diploidSV.*"
     publishDir "${params.outdir}/structuralVariants/manta/allOutput/", mode: 'copy'
 
     cpus 10
     maxForks 3
-    conda '/data/shared/programmer/miniconda3/envs/py2'
 
     input:
     tuple val(sampleID), path(aln), path(index)

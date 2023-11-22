@@ -194,7 +194,6 @@ channel
 
 include { 
          // Symlinks:
-         inputFiles_symlinks_fq;
          inputFiles_symlinks_cram;
          // Preprocess tools:
          //QC tools
@@ -229,12 +228,10 @@ workflow QC {
 workflow {
 
     if (params.preprocessOnly) {
-        inputFiles_symlinks_fq(fq_read_input)
         SUB_PREPROCESS(fq_read_input)
     }
 
     if (params.fastqInput||params.fastq) {
-        inputFiles_symlinks_fq(fq_read_input)
         SUB_PREPROCESS(fq_read_input)
         SUB_VARIANTCALL_WGS(SUB_PREPROCESS.out.finalAln)
         SUB_CNV_SV(SUB_PREPROCESS.out.finalAln)

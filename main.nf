@@ -233,7 +233,7 @@ workflow {
         SUB_PREPROCESS(fq_read_input)
     }
 
-    if (params.fastqInput) {
+    if (params.fastqInput||params.fastq) {
         inputFiles_symlinks_fq(fq_read_input)
         SUB_PREPROCESS(fq_read_input)
         SUB_VARIANTCALL_WGS(SUB_PREPROCESS.out.finalAln)
@@ -242,7 +242,7 @@ workflow {
         SUB_SMN(SUB_PREPROCESS.out.finalAln)
     }
 
-    if (!params.fastqInput) {
+    if (!params.fastqInput && !params.fastq) {
         inputFiles_symlinks_cram(meta_aln_index)
         SUB_VARIANTCALL_WGS(meta_aln_index)
         SUB_CNV_SV(meta_aln_index)

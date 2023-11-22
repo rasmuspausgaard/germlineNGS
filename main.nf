@@ -112,9 +112,9 @@ if (params.cram) {
 
 // If only samplesheet is provided, use CRAM from archive as input (default setup)!
 
-if (params.samplesheet && !params.cram && !params.fastqInput) {
-    cramfiles="${dataArchive}/{lnx01,kga01_novaRuns,tank_kga_external_archive}/${reads_pattern_cram}"
-    craifiles="${dataArchive}/{lnx01,kga01_novaRuns,tank_kga_external_archive}/${reads_pattern_crai}"
+if (params.samplesheet && !params.cram && !params.fastqInput && !params.fastq) {
+    cramfiles="${dataArchive}/{lnx01,kga01_novaRuns,tank_kga_external_archive}/**/${reads_pattern_cram}"
+    craifiles="${dataArchive}/{lnx01,kga01_novaRuns,tank_kga_external_archive}/**/${reads_pattern_crai}"
 
     Channel
     .fromPath(cramfiles)
@@ -190,7 +190,6 @@ channel
     .map { it -> tuple(it.baseName,it)}
     .set { haplotypecallerIntervalList }
 ////////////////////////////////////////////////////
-
 
 include { 
          // Symlinks:

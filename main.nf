@@ -170,13 +170,13 @@ if (!params.samplesheet && params.cram) {
 
 
 
-if (params.samplesheet && !params.cram && params.fastqInput) {
+if (params.samplesheet && !params.cram && (params.fastqInput||params.fastq)) {
     full_samplesheet.join(read_pairs_ch)
     .map {tuple (it[0]+"_"+it[1]+"_"+it[2],it[4],it[5])}
     .set { fq_read_input }
 }
 
-if (params.samplesheet && !params.fastqInput) {
+if (params.samplesheet && !params.fastqInput && !params.fastq) {
 
     full_samplesheet.join(sampleID_cram).join(sampleID_crai)
     .map {tuple (it[0]+"_"+it[1]+"_"+it[2],it[4],it[5])}

@@ -175,7 +175,7 @@ if (params.samplesheet && !params.cram && (params.fastqInput||params.fastq)) {
     .map {tuple (it[0]+"_"+it[1]+"_"+it[2],it[4],it[5])}
     .set { fq_read_input }
 }
-fq_read_input.view()
+
 if (params.samplesheet && !params.fastqInput && !params.fastq) {
 
     full_samplesheet.join(sampleID_cram).join(sampleID_crai)

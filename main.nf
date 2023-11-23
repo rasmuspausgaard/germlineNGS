@@ -218,14 +218,53 @@ if (!params.fastq && params.fastqInput) {
     params.reads="${dataArchive}/{lnx01,kga01_novaRuns,tank_kga_external_archive}/**/${reads_pattern_fastq}"
 }
 
+
 // if fastq input, set reads input channels
-if (!params.cram && params.fastqInput||params.fastq) {
-    channel
-    .fromFilePairs(params.reads, checkIfExists: true)
-    .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
-    .map { it -> [it[0], file(it[1][0]),file(it[1][1])] }
+
+// Standard use: point to fastq folder for paneldata
+
+if (!params.samplesheet && params.fastq) {
+
+    Channel
+    .fromPath(params.reads, checkIfExists: true)
+    .filter {it =~/_R1_/}
+    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
+    .set { sampleid_R1}
+
+    Channel
+    .fromPath(params.reads, checkIfExists: true)
+    .filter {it =~/_R2_/}
+    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
+    .set { sampleid_R2 }
+
+    sampleid_R1.join(sampleid_R2)
     .set { read_pairs_ch }
+
 }
+
+if (params.samplesheet && params.fastq || params.fastqInput) {
+
+    Channel
+    .fromPath(params.reads, checkIfExists: true)
+    .filter {it =~/_R1_/}
+    .map { tuple(it.baseName.tokenize('-').get(0),it) }
+    .set { sampleid_R1}
+
+    Channel
+    .fromPath(params.reads, checkIfExists: true)
+    .filter {it =~/_R2_/}
+    .map { tuple(it.baseName.tokenize('-').get(0),it) }
+    .set { sampleid_R2 }
+
+    sampleid_R1.join(sampleid_R2)
+    .set { read_pairs_ch }
+
+}
+
+
+// Standard use: POint to fastq for WGS ana
+
+
 
 
 if (params.cram && !params.panel) {
@@ -251,12 +290,12 @@ if (params.cram && params.panel) {
 
     Channel
     .fromPath(cramfiles)
-    .map { tuple(it.simpleName, it) }
+    .map { tuple(it.baseName.tokenize('.').get(0),it) }
     .set { sampleID_cram }
 
     Channel
     .fromPath(craifiles)
-    .map { tuple(it.simpleName, it) }
+    .map { tuple(it.baseName.tokenize('.').get(0),it) }
     .set {sampleID_crai }
 }
 

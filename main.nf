@@ -9,6 +9,7 @@ runID="${date}.${user}"
 
 //Unset parameters
 params.help                     =false
+params.panel                    =null
 params.samplesheet              =null
 params.preprocessOnly           =null
 
@@ -27,7 +28,7 @@ params.skipSTR                  =null
 params.skipSMN                  =null
 //Preset parameters:
 params.gatk                     ="new"
-params.panel                    = "WGS" // preset for WGS analysis
+
 params.server                   = "lnx01"
 params.genome                   = "hg38"
 params.outdir                   = "${launchDir.baseName}.Results"
@@ -41,6 +42,12 @@ def helpMessage() {
 
     Usage:
 
+    KG Vejle Germline script (WGS or panels)
+
+    PANEL ANALYSIS:
+
+
+    WGS ANALYSIS:
     The only requirement is a samplesheet containing 4 columns without headerline in this specific order:
     famID/projektNavn, NPN, Relation, SampleStatus
 
@@ -70,7 +77,7 @@ def helpMessage() {
 
       --hg38v2          Use hg38 v2 (ucsc.hg38.NGS.analysisSet.fa).
       
-      --samplesheet     Path to samplesheet for samples to be analyzed  
+      --samplesheet     Path to samplesheet for samples to be analyzed (Only required for WGS analysis)
       
       --fastq            Path to folder with wgs fastq files
                             Default: /lnx01_data2/shared/dataArchive/{all subfolders}
@@ -85,9 +92,14 @@ def helpMessage() {
                             Default: Not set - analyze all samples together
       
       --outdir          Manually set output directory
-                            Default: {current_dir}/WGS_results.{DATE}
-    
-    Select or modify analysis steps (optional - do not use them for regular standard analyses):
+                            Default: {current_dir}/Results
+
+    Panel analysis:
+      --skipSpliceAI
+
+
+
+    WGS Analysis: Select or modify analysis steps:
       --skipVariants    Do not call SNPs and INDELs at all
                             Default: Call SNPs and INDELs using GATK HaplotypeCaller
 
@@ -148,11 +160,33 @@ switch (params.server) {
 
 
 switch (params.panel) {
-    case "WGS":
-        reads_pattern_cram="*{-,.,_}{WG3,WG4,LIB,WG4_CNV}{-,.,_}*.cram";
-        reads_pattern_crai="*{-,.,_}{WG3,WG4,LIB,WG4_CNV}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{WG3,WG4,LIB,WG4_CNV}{-,.,_}*R{1,2}*{fq,fastq}.gz";
-        panelID="WGS"
+
+    case "AV1":
+        reads_pattern_cram="*{.,-,_}{AV1}{.,-,_}*.cram";
+        reads_pattern_crai="*{.,-,_}{AV1}{.,-,_}*.crai";
+        reads_pattern_fastq="*{.,-,_}{AV1}{.,-,_}*R{1,2}*{fq,fastq}.gz";
+        panelID="AV1"
+    break;
+
+    case "CV5":
+        reads_pattern_cram="*{-CV5-,.CV5.}*.cram";
+        reads_pattern_crai="*{-CV5-,.CV5.}*.crai";
+        reads_pattern_fastq="*{-CV5-,.CV5.}*R{1,2}*{fq,fastq}.gz";
+        panelID="CV5"
+    break;
+
+    case "WES_2":
+        reads_pattern_cram="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.cram";
+        reads_pattern_crai="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.crai";
+        reads_pattern_fastq="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        panelID="WES"
+    break;
+
+    case "WES":
+        reads_pattern_cram="*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.cram";
+        reads_pattern_crai="*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.crai";
+        reads_pattern_fastq="*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        panelID="WES_subpanel"
     break;
 
     case "WGS_CNV":
@@ -184,17 +218,56 @@ if (!params.fastq && params.fastqInput) {
     params.reads="${dataArchive}/{lnx01,kga01_novaRuns,tank_kga_external_archive}/**/${reads_pattern_fastq}"
 }
 
+
 // if fastq input, set reads input channels
-if (!params.cram && params.fastqInput||params.fastq) {
-    channel
-    .fromFilePairs(params.reads, checkIfExists: true)
-    .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
-    .map { it -> [it[0], file(it[1][0]),file(it[1][1])] }
+
+// Standard use: point to fastq folder for paneldata
+
+if (!params.samplesheet && params.fastq) {
+// If NOT samplesheet (std panel run), set sampleID == NPN_PANEL_SUBPANEL
+    Channel
+    .fromPath(params.reads, checkIfExists: true)
+    .filter {it =~/_R1_/}
+    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
+    .set { sampleid_R1}
+
+    Channel
+    .fromPath(params.reads, checkIfExists: true)
+    .filter {it =~/_R2_/}
+    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
+    .set { sampleid_R2 }
+
+    sampleid_R1.join(sampleid_R2)
     .set { read_pairs_ch }
+
+}
+
+if (params.samplesheet && params.fastq || params.fastqInput) {
+// If samplesheet, reduce sampleID to NPN only (no panel/subpanel info!)
+    Channel
+    .fromPath(params.reads, checkIfExists: true)
+    .filter {it =~/_R1_/}
+    .map { tuple(it.baseName.tokenize('-').get(0),it) }
+    .set { sampleid_R1}
+
+    Channel
+    .fromPath(params.reads, checkIfExists: true)
+    .filter {it =~/_R2_/}
+    .map { tuple(it.baseName.tokenize('-').get(0),it) }
+    .set { sampleid_R2 }
+
+    sampleid_R1.join(sampleid_R2)
+    .set { read_pairs_ch }
+
 }
 
 
-if (params.cram) {
+// Standard use: POint to fastq for WGS ana
+
+
+
+
+if (params.cram && !params.panel) {
 
     cramfiles="${params.cram}/${reads_pattern_cram}"
     craifiles="${params.cram}/${reads_pattern_crai}"
@@ -209,6 +282,23 @@ if (params.cram) {
     .map { tuple(it.baseName.tokenize('_').get(0),it) }
     .set {sampleID_crai }
 }
+
+if (params.cram && params.panel) {
+
+    cramfiles="${params.cram}/${reads_pattern_cram}"
+    craifiles="${params.cram}/${reads_pattern_crai}"
+
+    Channel
+    .fromPath(cramfiles)
+    .map { tuple(it.baseName.tokenize('.').get(0),it) }
+    .set { sampleID_cram }
+
+    Channel
+    .fromPath(craifiles)
+    .map { tuple(it.baseName.tokenize('.').get(0),it) }
+    .set {sampleID_crai }
+}
+
 
 // If only samplesheet is provided, use CRAM from archive as input (default setup)!
 
@@ -268,8 +358,6 @@ if (!params.samplesheet && params.cram) {
     .set { meta_aln_index }
 }
 
-
-
 if (params.samplesheet && !params.cram && (params.fastqInput||params.fastq)) {
     full_samplesheet.join(read_pairs_ch)
     .map {tuple (it[0]+"_"+it[1]+"_"+it[2],it[4],it[5])}
@@ -303,6 +391,7 @@ include {
          multiQC;
          //subworkflows:
          SUB_PREPROCESS;
+         SUB_VARIANTCALL;
          SUB_VARIANTCALL_WGS;
          SUB_CNV_SV;
          SUB_STR;
@@ -330,39 +419,55 @@ workflow {
         SUB_PREPROCESS(fq_read_input)
     }
 
-    if (params.fastqInput||params.fastq) {
-        SUB_PREPROCESS(fq_read_input)
-        
-        if (!params.skipVariants) {
-            SUB_VARIANTCALL_WGS(SUB_PREPROCESS.out.finalAln)
+    if (!params.panel) {        // if not params.panel =WGS
+
+        if (params.fastqInput||params.fastq) {
+            SUB_PREPROCESS(fq_read_input)
+            
+            if (!params.skipVariants) {
+                SUB_VARIANTCALL_WGS(SUB_PREPROCESS.out.finalAln)
+            }
+            if (!params.skipSV) {
+                SUB_CNV_SV(SUB_PREPROCESS.out.finalAln)
+            }
+            if (!params.skipSTR) {
+                SUB_STR(SUB_PREPROCESS.out.finalAln)
+            }
+            
+            if (!params.skipSMN) {
+            SUB_SMN(SUB_PREPROCESS.out.finalAln)
+            }
         }
-        if (!params.skipSV) {
-            SUB_CNV_SV(SUB_PREPROCESS.out.finalAln)
+
+        if (!params.fastqInput && !params.fastq) {
+            inputFiles_symlinks_cram(meta_aln_index)
+
+            if (!params.skipVariants) {
+                SUB_VARIANTCALL_WGS(meta_aln_index)
+            }
+            if (!params.skipSV) {
+                SUB_CNV_SV(meta_aln_index)
+            }
+            if (!params.skipSTR) {
+                SUB_STR(meta_aln_index)
+            }
+            if (!params.skipSMN) {
+            SUB_SMN(meta_aln_index)
+            }
         }
-        if (!params.skipSTR) {
-            SUB_STR(SUB_PREPROCESS.out.finalAln)
+    }
+    if (params.panel) {
+
+        if (params.fastqInput||params.fastq) {
+            SUB_PREPROCESS(fq_read_input)
+            SUB_VARIANTCALL(SUB_PREPROCESS.out.finalAln)
         }
-        
-        if (!params.skipSMN) {
-        SUB_SMN(SUB_PREPROCESS.out.finalAln)
+        if (!params.fastqInput && !params.fastq) {
+            inputFiles_symlinks_cram(meta_aln_index)
+            SUB_VARIANTCALL(meta_aln_index)
         }
     }
 
-    if (!params.fastqInput && !params.fastq) {
-        inputFiles_symlinks_cram(meta_aln_index)
 
-        if (!params.skipVariants) {
-            SUB_VARIANTCALL_WGS(meta_aln_index)
-        }
-        if (!params.skipSV) {
-            SUB_CNV_SV(meta_aln_index)
-        }
-        if (!params.skipSTR) {
-            SUB_STR(meta_aln_index)
-        }
-        if (!params.skipSMN) {
-        SUB_SMN(meta_aln_index)
-        }
-    }
 
 }

@@ -12,6 +12,9 @@ Hg38 (v3) assembly is used by default. Hg19 is no longer supported.
 
 
 
+
+
+
 # Usage
 
 The tools used and output generated depends on how the script is used, i.e. if it is used for panels or WGS. See below for instructions.

@@ -1213,7 +1213,7 @@ workflow SUB_VARIANTCALL {
     }
 
     if (panelID != "AV1" && panelID!= "WES_subpanel") {
-        sample_gvcf_list
+        gvcf_list
             .map{" -V "+ it[1] }
             .collectFile(name: "collectfileNOTAV1.txt", newLine: false)
             .map {it.text.trim()}

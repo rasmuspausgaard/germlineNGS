@@ -224,7 +224,7 @@ if (!params.fastq && params.fastqInput) {
 // Standard use: point to fastq folder for paneldata
 
 if (!params.samplesheet && params.fastq) {
-
+// If NOT samplesheet (std panel run), set sampleID == NPN_PANEL_SUBPANEL
     Channel
     .fromPath(params.reads, checkIfExists: true)
     .filter {it =~/_R1_/}
@@ -243,7 +243,7 @@ if (!params.samplesheet && params.fastq) {
 }
 
 if (params.samplesheet && params.fastq || params.fastqInput) {
-
+// If samplesheet, reduce sampleID to NPN only (no panel/subpanel info!)
     Channel
     .fromPath(params.reads, checkIfExists: true)
     .filter {it =~/_R1_/}
@@ -357,8 +357,6 @@ if (!params.samplesheet && params.cram) {
     sampleID_cram.join(sampleID_crai)
     .set { meta_aln_index }
 }
-
-
 
 if (params.samplesheet && !params.cram && (params.fastqInput||params.fastq)) {
     full_samplesheet.join(read_pairs_ch)

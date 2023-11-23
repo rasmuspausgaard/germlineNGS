@@ -148,11 +148,33 @@ switch (params.server) {
 
 
 switch (params.panel) {
-    case "WGS":
-        reads_pattern_cram="*{-,.,_}{WG3,WG4,LIB,WG4_CNV}{-,.,_}*.cram";
-        reads_pattern_crai="*{-,.,_}{WG3,WG4,LIB,WG4_CNV}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{WG3,WG4,LIB,WG4_CNV}{-,.,_}*R{1,2}*{fq,fastq}.gz";
-        panelID="WGS"
+
+    case "AV1":
+        reads_pattern_cram="*{.,-,_}{AV1}{.,-,_}*.cram";
+        reads_pattern_crai="*{.,-,_}{AV1}{.,-,_}*.crai";
+        reads_pattern_fastq="*{.,-,_}{AV1}{.,-,_}*R{1,2}*{fq,fastq}.gz";
+        panelID="AV1"
+    break;
+
+    case "CV5":
+        reads_pattern_cram="*{-CV5-,.CV5.}*.cram";
+        reads_pattern_crai="*{-CV5-,.CV5.}*.crai";
+        reads_pattern_fastq="*{-CV5-,.CV5.}*R{1,2}*{fq,fastq}.gz";
+        panelID="CV5"
+    break;
+
+    case "WES_2":
+        reads_pattern_cram="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.cram";
+        reads_pattern_crai="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.crai";
+        reads_pattern_fastq="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        panelID="WES"
+    break;
+
+    case "WES":
+        reads_pattern_cram="*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.cram";
+        reads_pattern_crai="*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.crai";
+        reads_pattern_fastq="*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        panelID="WES_subpanel"
     break;
 
     case "WGS_CNV":
@@ -303,6 +325,7 @@ include {
          multiQC;
          //subworkflows:
          SUB_PREPROCESS;
+         SUB_VARIANTCALL;
          SUB_VARIANTCALL_WGS;
          SUB_CNV_SV;
          SUB_STR;
@@ -330,39 +353,55 @@ workflow {
         SUB_PREPROCESS(fq_read_input)
     }
 
-    if (params.fastqInput||params.fastq) {
-        SUB_PREPROCESS(fq_read_input)
-        
-        if (!params.skipVariants) {
-            SUB_VARIANTCALL_WGS(SUB_PREPROCESS.out.finalAln)
+    if (!params.panel) {        // if not params.panel =WGS
+
+        if (params.fastqInput||params.fastq) {
+            SUB_PREPROCESS(fq_read_input)
+            
+            if (!params.skipVariants) {
+                SUB_VARIANTCALL_WGS(SUB_PREPROCESS.out.finalAln)
+            }
+            if (!params.skipSV) {
+                SUB_CNV_SV(SUB_PREPROCESS.out.finalAln)
+            }
+            if (!params.skipSTR) {
+                SUB_STR(SUB_PREPROCESS.out.finalAln)
+            }
+            
+            if (!params.skipSMN) {
+            SUB_SMN(SUB_PREPROCESS.out.finalAln)
+            }
         }
-        if (!params.skipSV) {
-            SUB_CNV_SV(SUB_PREPROCESS.out.finalAln)
+
+        if (!params.fastqInput && !params.fastq) {
+            inputFiles_symlinks_cram(meta_aln_index)
+
+            if (!params.skipVariants) {
+                SUB_VARIANTCALL_WGS(meta_aln_index)
+            }
+            if (!params.skipSV) {
+                SUB_CNV_SV(meta_aln_index)
+            }
+            if (!params.skipSTR) {
+                SUB_STR(meta_aln_index)
+            }
+            if (!params.skipSMN) {
+            SUB_SMN(meta_aln_index)
+            }
         }
-        if (!params.skipSTR) {
-            SUB_STR(SUB_PREPROCESS.out.finalAln)
+    }
+    if (params.panel) {
+
+        if (params.fastqInput||params.fastq) {
+            SUB_PREPROCESS(fq_read_input)
+            SUB_VARIANTCALL(SUB_PREPROCESS.out.finalAln)
         }
-        
-        if (!params.skipSMN) {
-        SUB_SMN(SUB_PREPROCESS.out.finalAln)
+        if (!params.fastqInput && !params.fastq) {
+            inputFiles_symlinks_cram(meta_aln_index)
+            SUB_VARIANTCALL(meta_aln_index)
         }
     }
 
-    if (!params.fastqInput && !params.fastq) {
-        inputFiles_symlinks_cram(meta_aln_index)
 
-        if (!params.skipVariants) {
-            SUB_VARIANTCALL_WGS(meta_aln_index)
-        }
-        if (!params.skipSV) {
-            SUB_CNV_SV(meta_aln_index)
-        }
-        if (!params.skipSTR) {
-            SUB_STR(meta_aln_index)
-        }
-        if (!params.skipSMN) {
-        SUB_SMN(meta_aln_index)
-        }
-    }
 
 }

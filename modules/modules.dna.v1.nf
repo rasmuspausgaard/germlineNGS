@@ -181,19 +181,14 @@ switch (params.panel) {
         panelID="WES_subpanel"
     break;
 
-    case "WGS":
-        ROI="${WES_ROI}";
-        panelID="WGS"
-    break;
-
     case "WGS_CNV":
         ROI="${WES_ROI}";
         panelID="WGS_CNV"
     break;
     
     default: 
-        ROI="${AV1_ROI}";
-        panelID="AV1"
+        ROI="${WES_ROI}";
+        panelID="WGS"
     break;
 }
 

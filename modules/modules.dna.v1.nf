@@ -231,7 +231,7 @@ PanelID      : $panelID
 
 process inputFiles_symlinks_fq{
     errorStrategy 'ignore'
-    publishDir "${params.outdir}/input_symlinks/", mode: 'link', pattern:'*.{fastq,fq}.gz'
+    publishDir "${outputDir}/input_symlinks/", mode: 'link', pattern:'*.{fastq,fq}.gz'
     input:
     tuple val(sampleID), path(r1),path(r2)// from read_input2
     
@@ -246,7 +246,7 @@ process inputFiles_symlinks_fq{
 
 process inputFiles_symlinks_cram{
     errorStrategy 'ignore'
-    publishDir "${params.outdir}/input_symlinks/", mode: 'link', pattern: '*.{ba,cr}*'
+    publishDir "${outputDir}/input_symlinks/", mode: 'link', pattern: '*.{ba,cr}*'
     input:
     tuple val(sampleID), path(aln),path(index)// from symlink_input
     
@@ -267,7 +267,7 @@ process inputFiles_symlinks_cram{
 process fastq_to_ubam {
     errorStrategy 'ignore'
     tag "$sampleID"
-    //publishDir "${params.outdir}/unmappedBAM/", mode: 'copy',pattern: '*.{bam,bai}'
+    //publishDir "${outputDir}/unmappedBAM/", mode: 'copy',pattern: '*.{bam,bai}'
     //publishDir "${outputDir}/fastq_symlinks/", mode: 'link', pattern:'*.{fastq,fq}.gz'
     cpus 20
     maxForks 10
@@ -383,7 +383,7 @@ process markDup_cram {
     errorStrategy 'ignore'
     maxForks 6
     tag "$sampleID"
-    publishDir "${outputDir}/", mode: 'copy', pattern: "*.BWA.MD.cr*"
+    publishDir "${outputDir}/CRAM/", mode: 'copy', pattern: "*.BWA.MD.cr*"
     
     input:
     tuple val(sampleID), path(aln)
@@ -410,7 +410,7 @@ process markDup_cram {
 process bamtools {
     errorStrategy 'ignore'
     tag "$sampleID"
-    publishDir "${params.outdir}/QC/", mode: 'copy'
+    publishDir "${outputDir}/QC/", mode: 'copy'
 
     input:
     val(sampleID),  path(aln), path(aln_index)
@@ -428,7 +428,7 @@ process samtools {
 
     errorStrategy 'ignore'
     tag "$sampleID"
-    publishDir "${params.outdir}/QC/", mode: 'copy'
+    publishDir "${outputDir}/QC/", mode: 'copy'
 
     input:  
     tuple val(sampleID), path(aln), path(index)
@@ -450,7 +450,7 @@ process qualimap {
     tag "$sampleID"
     cpus 10
     maxForks 8
-    publishDir "${params.outdir}/QC/${sampleID}/qualimap/", mode: 'copy'
+    publishDir "${outputDir}/QC/${sampleID}/qualimap/", mode: 'copy'
 
     input:
     tuple val(sampleID), path(aln), path(index)
@@ -475,7 +475,7 @@ process fastqc_bam {
     errorStrategy 'ignore'
     tag "$sampleID"
     cpus 2
-    publishDir "${params.outdir}/QC/${sampleID}/", mode: 'copy'
+    publishDir "${outputDir}/QC/${sampleID}/", mode: 'copy'
     input:
     tuple val(sampleID), path(aln), path(index)
     
@@ -494,7 +494,7 @@ process collectWGSmetrics {
     errorStrategy 'ignore'
     tag "$sampleID"
     cpus 5
-    publishDir "${params.outdir}/QC/${sampleID}/picard/", mode: 'copy'
+    publishDir "${outputDir}/QC/${sampleID}/picard/", mode: 'copy'
 
     input:
     tuple val(sampleID), path(aln), path(index)
@@ -514,7 +514,7 @@ process collectWGSmetrics {
 process multiQC {
     
     errorStrategy 'ignore'
-    publishDir "${params.outdir}/QC/", mode: 'copy'
+    publishDir "${outputDir}/QC/", mode: 'copy'
 
     input:
     path(inputfiles)
@@ -543,7 +543,6 @@ process haplotypecaller{
         publishDir "${outputDir}/Variants/per_sample/", mode: 'copy', pattern: "*.HC.*"
         publishDir "${outputDir}/Variants/GVCF_files/", mode: 'copy', pattern: "*.g.*"
         publishDir "${outputDir}/HaplotypeCallerBAMout/", mode: 'copy', pattern: "*.HCbamout.*"
-        publishDir "${outputDir}/alignmentFiles_symlinks/", mode: 'link', pattern: "*.BWA.MD.*"
             
         input:
         tuple val(sampleID), path(aln), path(aln_index)
@@ -588,8 +587,8 @@ process haplotypecaller{
 process jointgenotyping {
         errorStrategy 'ignore'
         cpus 4
-        publishDir "${params.outdir}/Variants/", mode: 'copy', pattern: "*.VarSeq.*"
-        publishDir "${params.outdir}/Variants/GVCF_files/", mode: 'copy', pattern: "*.merged.g.*"
+        publishDir "${outputDir}/Variants/", mode: 'copy', pattern: "*.VarSeq.*"
+        publishDir "${outputDir}/Variants/GVCF_files/", mode: 'copy', pattern: "*.merged.g.*"
         //publishDir "tumorBoard_files", mode: 'copy', pattern: "*.VarSeq.*"
 
         input:
@@ -622,7 +621,7 @@ process jointgenotyping {
   process spliceAI {
         errorStrategy 'ignore'
         cpus 4
-        publishDir "${params.outdir}/Variants/", mode: 'copy', pattern: "*.spliceAI.merged.for.VarSeq.*"
+        publishDir "${outputDir}/Variants/", mode: 'copy', pattern: "*.spliceAI.merged.for.VarSeq.*"
 
         input:
         tuple val(panelID), path(vcf)// from spliceAI_input
@@ -679,7 +678,7 @@ process haplotypecallerSplitIntervals {
 process mergeScatteredGVCF{
     errorStrategy 'ignore'
     tag "$sampleID"
-    publishDir "${params.outdir}/Variants/", mode: 'copy'
+    publishDir "${outputDir}/Variants/", mode: 'copy'
     maxForks 9
 
     input:
@@ -717,7 +716,7 @@ process mergeScatteredGVCF{
 
 process jointgenoScatter{
     errorStrategy 'ignore'
-    publishDir "${params.outdir}/Variants/", mode: 'copy'
+    publishDir "${outputDir}/Variants/", mode: 'copy'
 
     input:
     val x //from gvcfsamples_for_GATK_scatter
@@ -766,7 +765,7 @@ process manta {
     errorStrategy 'ignore'
     tag "$sampleID"
     publishDir "${inhouse_SV}/manta/raw_calls/", mode: 'copy', pattern: " ${sampleID}.manta.diploidSV.*"
-    publishDir "${params.outdir}/structuralVariants/manta/allOutput/", mode: 'copy'
+    publishDir "${outputDir}/structuralVariants/manta/allOutput/", mode: 'copy'
 
     cpus 10
     maxForks 3
@@ -819,7 +818,7 @@ process filter_manta {
     errorStrategy 'ignore'
 
     publishDir "${inhouse_SV}/manta/filtered/", mode: 'copy', pattern: "*.filtered.vcf"
-    publishDir "${params.outdir}/structuralVariants/manta/", mode: 'copy', pattern: "*.filtered.vcf"
+    publishDir "${outputDir}/structuralVariants/manta/", mode: 'copy', pattern: "*.filtered.vcf"
     
     input:
     tuple val(sampleID), path(vcf), path(idx)
@@ -840,7 +839,7 @@ process lumpy {
     errorStrategy 'ignore'
     tag "$sampleID"
     publishDir "${inhouse_SV}/lumpy/raw_calls/", mode: 'copy', pattern: "*.Lumpy_altmode_step1.vcf"
-    publishDir "${params.outdir}/structuralVariants/lumpy/", mode: 'copy'
+    publishDir "${outputDir}/structuralVariants/lumpy/", mode: 'copy'
     
     cpus 1
     maxForks 3
@@ -881,7 +880,7 @@ process tiddit361 {
     tag "$sampleID"
     publishDir "${inhouse_SV}/tiddit/PASSED_calls/", mode: 'copy', pattern: "*.PASS.vcf"
     publishDir "${inhouse_SV}/tiddit/RAW_calls/", mode: 'copy', pattern: "*.tiddit.vcf"
-    publishDir "${params.outdir}/structuralVariants/tiddit/", mode: 'copy'
+    publishDir "${outputDir}/structuralVariants/tiddit/", mode: 'copy'
     
     cpus 10
     maxForks 3
@@ -910,7 +909,7 @@ process cnvkit {
     errorStrategy 'ignore'
     tag "$sampleID"
 
-    publishDir "${params.outdir}/structuralVariants/cnvkit/", mode: 'copy'
+    publishDir "${outputDir}/structuralVariants/cnvkit/", mode: 'copy'
     publishDir "${cnvkit_inhouse_cnn_dir}", mode: 'copy', pattern: '*.targetcoverage.cnn'
 
     input:
@@ -944,7 +943,7 @@ process cnvkitExportFiles {
     errorStrategy 'ignore'
     tag "$sampleID"
     publishDir "${inhouse_SV}/cnvkit/raw_calls/", mode: 'copy', pattern: '*.cnvkit.vcf'
-    publishDir "${params.outdir}/structuralVariants/cnvkit/", mode: 'copy'
+    publishDir "${outputDir}/structuralVariants/cnvkit/", mode: 'copy'
 
     input:
     tuple val(sampleID), path(cnvkit_calls)// from cnvkit_calls_out
@@ -972,9 +971,9 @@ process merge4callerSVDB {
     tag "$sampleID"
     errorStrategy 'ignore'
 
-    //publishDir "${params.outdir}/all_callers_merged/", mode: 'copy'
-    publishDir "${params.outdir}/structuralVariants/SVDB_merged/", mode: 'copy', pattern: "*.4caller.SVDB.merged.*"
-    //publishDir "${params.outdir}/", mode: 'copy', pattern: '*.vcf'
+    //publishDir "${outputDir}/all_callers_merged/", mode: 'copy'
+    publishDir "${outputDir}/structuralVariants/SVDB_merged/", mode: 'copy', pattern: "*.4caller.SVDB.merged.*"
+    //publishDir "${outputDir}/", mode: 'copy', pattern: '*.vcf'
     //container 'kfdrc/manta:1.6.0'
     maxForks 12
     input:
@@ -1011,7 +1010,7 @@ process merge4callerSVDB {
 process expansionHunter {
     errorStrategy 'ignore'
     tag "$sampleID"
-    publishDir "${params.outdir}/repeatExpansions/expansionHunter/", mode: 'copy'
+    publishDir "${outputDir}/repeatExpansions/expansionHunter/", mode: 'copy'
     cpus 10
     input:
     tuple val(sampleID), path(aln), path(index)
@@ -1032,7 +1031,7 @@ process expansionHunter {
 process stripy {
     errorStrategy 'ignore'
     tag "$sampleID"
-    publishDir "${params.outdir}/repeatExpansions/STRipy/", mode: 'copy'
+    publishDir "${outputDir}/repeatExpansions/STRipy/", mode: 'copy'
 
     input:
     tuple val(sampleID), path(aln), path(index)
@@ -1054,7 +1053,7 @@ process stripy {
 
 process prepareManifestSMN {
     
-    publishDir "${params.outdir}/SMNcaller/", mode: 'copy'
+    publishDir "${outputDir}/SMNcaller/", mode: 'copy'
     
     input:
     path(samplesheet) // from smn_input_ch
@@ -1069,7 +1068,7 @@ process prepareManifestSMN {
 }
 
 process smnCopyNumberCaller {
-    publishDir "${params.outdir}/SMNcaller/", mode: 'copy'
+    publishDir "${outputDir}/SMNcaller/", mode: 'copy'
     errorStrategy "ignore"
     cpus 12
 
@@ -1129,7 +1128,7 @@ workflow SUB_VARIANTCALL {
     haplotypecaller.out.sample_gvcf
     .map{ tuple(it.simpleName, it) }
     .set { gvcf_list }
-    
+    gvcf_list.view {"gvcf_list: $it"}
     if (panelID=="AV1"){
         gvcf_list
             .filter {it =~/_CV6/}
@@ -1221,7 +1220,7 @@ workflow SUB_VARIANTCALL {
             .map { tuple(panelID, it) }
             .set {gvcfsamples_for_GATK}
     }
-
+    gvcfsamples_for_GATK.view{"final_gvcfsamples_for_GATK: $it"}
     jointgenotyping(gvcfsamples_for_GATK)
     
     if (panelID=="AV1"){

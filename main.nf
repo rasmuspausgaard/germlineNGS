@@ -9,6 +9,7 @@ runID="${date}.${user}"
 
 //Unset parameters
 params.help                     =false
+params.panel                    =null
 params.samplesheet              =null
 params.preprocessOnly           =null
 
@@ -27,7 +28,7 @@ params.skipSTR                  =null
 params.skipSMN                  =null
 //Preset parameters:
 params.gatk                     ="new"
-params.panel                    = "WGS" // preset for WGS analysis
+
 params.server                   = "lnx01"
 params.genome                   = "hg38"
 params.outdir                   = "${launchDir.baseName}.Results"
@@ -43,6 +44,10 @@ def helpMessage() {
 
     KG Vejle Germline script (WGS or panels)
 
+    PANEL ANALYSIS:
+
+
+    WGS ANALYSIS:
     The only requirement is a samplesheet containing 4 columns without headerline in this specific order:
     famID/projektNavn, NPN, Relation, SampleStatus
 
@@ -87,9 +92,14 @@ def helpMessage() {
                             Default: Not set - analyze all samples together
       
       --outdir          Manually set output directory
-                            Default: {current_dir}/WGS_results.{DATE}
-    
-    Select or modify analysis steps (NB: ONLY FOR WGS ANALYSIS! Optional - do not use them for regular standard analyses):
+                            Default: {current_dir}/Results
+
+    Panel analysis:
+      --skipSpliceAI
+
+
+
+    WGS Analysis: Select or modify analysis steps:
       --skipVariants    Do not call SNPs and INDELs at all
                             Default: Call SNPs and INDELs using GATK HaplotypeCaller
 

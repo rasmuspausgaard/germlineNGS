@@ -41,7 +41,7 @@ def helpMessage() {
 
     Usage:
 
-
+    KG Vejle Germline script (WGS or panels)
 
     The only requirement is a samplesheet containing 4 columns without headerline in this specific order:
     famID/projektNavn, NPN, Relation, SampleStatus

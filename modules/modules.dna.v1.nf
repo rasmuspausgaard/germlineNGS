@@ -211,8 +211,8 @@ channel
 
 log.info """\
 ===============================================
-Clinical Genetics Vejle: NF DNA modules v1
-Parameter information 
+Clinical Genetics Vejle: Germline NGS v1
+Panels or WGS analysis
 ===============================================
 Genome       : $params.genome
 Genome FASTA : $genome_fasta

@@ -28,8 +28,31 @@ NOTE: CRAM should be used as input, if possible.
 
 NOTE: This script can be run from both servers (kga01 and lnx01) when analyzing paneldata. The script assumes the lnx01 server is used by default. If this script is run from kga01, make sure to set the "--server kga01" parameter.
 
+Run the script with --help to see available options and default parameters:
+
+    nextflow run KGVejle/germlineNGS -r main --help
+
+
+
+### Most common use cases for panel analysis:
+
+For panel analysis, the user must use either --cram /path/to/cram/ or --fastq /path/to/fastq/ 
+
+Analyze AV1 samples, starting with cram
+   
+    nextflow run KGVejle/germlineNGS -r main --panel AV1 --cram /path/to/cram/
+
+Analyze AV1 samples, starting with fastq, do not run SpliceAI
+   
+    nextflow run KGVejle/germlineNGS -r main --panel AV1 --fastq /path/to/fastq/ --skipSpliceAI
+
+Analyze ALM / ONK WES samples:
+
+    nextflow run KGVejle/germlineNGS -r main --panel WES --fastq /path/to/fastq/
+
 ## WGS
 
+WGS analysis is only supported at the lnx01 server. 
 WGS analysis requires a tab-delimited samplesheet containing 4 columns without headerline in this specific order:
 
 caseID/projectID, NPN, Relation, SampleStatus
@@ -44,14 +67,14 @@ johnDoe 345678901234    pater   normal
 
 The above information can usually be extracted directly from the sample overview excel file
 
-If the inputdata (FastQ or CRAM) have been transferred to the data archive (which it is by default), the script will automatically find the relevant inputdata  and create symlinks for them in the output (results) directory, if --samplesheet /path/to/samplesheet/ is used.
+If the inputdata (FastQ or CRAM) have been transferred to the data archive (which it is by default), the script will automatically find the relevant inputdata and create symlinks for them in the output folder, if --samplesheet /path/to/samplesheet/ is used.
 
 The user can point to a specific folder containing raw data (FastQ) using the --fastq option or alignment data (CRAM) using the --cram option
 This is only needed if input data (FastQ or CRAM) exists outside the data archive (e.g. if data are in personal folders), or if the script is run without samplesheet.
 
-## Default settings:
+### Default settings:
 
-By default, the pipeline uses the hg38 assembly and consists of the following sub workflows:
+By default, the pipeline includes the following modules:
 
 1. Preprocessing if FastQ is used as input (fastq --> CRAM or BAM).
 2. Variantcalling (GATK Haplotypecaller + jointGenotyping)
@@ -60,31 +83,42 @@ By default, the pipeline uses the hg38 assembly and consists of the following su
 5. STR analysis (ExpansionHunter and Stripy)
 6. SMNcaller (SMNCopyNumberCaller)
 
+Submodules can be disabled at command line.
 
-## Most common use cases:
-This pipeline uses hg38 (KG Vejle V3) by default.
 
-Analyze all WGS data in folder (no samplesheet), starting with CRAM files:
 
-    nextflow run KGVejle/wgsPipeline -r main --cram /path/to/cram/ 
+### Most common use cases:
 
-Analyze only "WGS CNV" samples, starting with CRAM files: 
-
-    nextflow run KGVejle/wgsPipeline -r main --cram /path/to/cram/ --panel WGS_CNV 
+Analyze samples in samplesheet, starting with CRAM. Run full pipeline:
+   
+    nextflow run KGVejle/germlineNGS -r main --samplesheet /path/to/samplesheet/
 
 
 Analyze samples in samplesheet, starting with fastq:
    
-    nextflow run KGVejle/wgsPipeline -r main --samplesheet /path/to/samplesheet/ --fastqInput 
+    nextflow run KGVejle/germlineNGS -r main --samplesheet /path/to/samplesheet/ --fastqInput 
+    
 
-
-Analyze samples in samplesheet, starting with CRAM:
+Analyze samples in samplesheet, starting with CRAM. Do not run QC and STR analysis:
    
-    nextflow run KGVejle/wgsPipeline -r main --samplesheet /path/to/samplesheet/
+    nextflow run KGVejle/germlineNGS -r main --samplesheet /path/to/samplesheet/ --skipQC --skipSTR
 
-Run the script with --help to see available options and default parameters:
 
-    nextflow run KGVejle/wgsPipeline -r main --help
+Analyze all WGS data in folder (no samplesheet), starting with CRAM files:
+
+    nextflow run KGVejle/germlineNGS -r main --cram /path/to/cram/ 
+
+
+
+Analyze only "WGS CNV" samples, starting with CRAM files: 
+
+    nextflow run KGVejle/germlineNGS -r main --cram /path/to/cram/ --panel WGS_CNV 
+
+
+
+
+
+
 
 
 

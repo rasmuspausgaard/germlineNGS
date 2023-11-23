@@ -16,6 +16,7 @@ The tools used and output generated depends on how the script is used, i.e. if i
 
 
 ## Panels (AV1, WGS_CNV, CV5, WES)
+
 if fastq is used as input (using --fastq /path/to/fastq/) the script will perform read preprocessing, alignment, variantcalling and joint genotyping.
 
 If CRAM is used as input (using --cram /path/to/cram/) the script will perform variantcalling and joint genotyping.
@@ -49,6 +50,10 @@ Analyze AV1 samples, starting with fastq, do not run SpliceAI
 Analyze ALM / ONK WES samples:
 
     nextflow run KGVejle/germlineNGS -r main --panel WES --fastq /path/to/fastq/
+
+Analyze WGS CNV (minimal pipeline, CNV calls in VarSeq), starting from cram:
+
+    nextflow run KGVejle/germlineNGS -r main --panel WGS_CNV --cram /path/to/cram/
 
 ## WGS
 

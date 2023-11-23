@@ -10,9 +10,12 @@ This script is used for KG Vejle germline analysis of the following NGS designs:
 The script takes mapped data (CRAM files) OR raw data (fastq) as input.
 Hg38 (v3) assembly is used by default. Hg19 is no longer supported. 
 
+
+
 # Usage
 
 The tools used and output generated depends on how the script is used, i.e. if it is used for panels or WGS. See below for instructions.
+
 
 
 ## Panels (AV1, WGS_CNV, CV5, WES)
@@ -35,7 +38,8 @@ Run the script with --help to see available options and default parameters:
 
 
 
-### Most common use cases for panel analysis:
+
+### Common use cases:
 
 For panel analysis, the user must use either --cram /path/to/cram/ or --fastq /path/to/fastq/ 
 
@@ -54,6 +58,8 @@ Analyze ALM / ONK WES samples:
 Analyze WGS CNV (minimal pipeline, CNV calls in VarSeq), starting from cram:
 
     nextflow run KGVejle/germlineNGS -r main --panel WGS_CNV --cram /path/to/cram/
+
+
 
 ## WGS
 
@@ -92,7 +98,7 @@ Submodules can be disabled at command line.
 
 
 
-### Most common use cases:
+### Common use cases:
 
 Analyze samples in samplesheet, starting with CRAM. Run full pipeline:
    
@@ -115,9 +121,6 @@ Analyze all WGS data in folder (no samplesheet), starting with CRAM files:
 
 
 
-Analyze only "WGS CNV" samples, starting with CRAM files: 
-
-    nextflow run KGVejle/germlineNGS -r main --cram /path/to/cram/ --panel WGS_CNV 
 
 
 

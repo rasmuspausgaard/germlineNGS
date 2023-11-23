@@ -228,7 +228,7 @@ if (!params.cram && params.fastqInput||params.fastq) {
 }
 
 
-if (params.cram) {
+if (params.cram && !params.panel) {
 
     cramfiles="${params.cram}/${reads_pattern_cram}"
     craifiles="${params.cram}/${reads_pattern_crai}"
@@ -243,6 +243,23 @@ if (params.cram) {
     .map { tuple(it.baseName.tokenize('_').get(0),it) }
     .set {sampleID_crai }
 }
+
+if (params.cram && params.panel) {
+
+    cramfiles="${params.cram}/${reads_pattern_cram}"
+    craifiles="${params.cram}/${reads_pattern_crai}"
+
+    Channel
+    .fromPath(cramfiles)
+    .map { tuple(it.simpleName, it) }
+    .set { sampleID_cram }
+
+    Channel
+    .fromPath(craifiles)
+    .map { tuple(it.simpleName, it) }
+    .set {sampleID_crai }
+}
+
 
 // If only samplesheet is provided, use CRAM from archive as input (default setup)!
 

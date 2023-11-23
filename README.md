@@ -1,7 +1,20 @@
-# wgsPipeline
-Standard pipeline, WGS KG Vejle
+# KG Vejle Germline pipeline
 
 ## General info:
+This script is used for KG Vejle germline analysis of the following NGS designs:
+1. Panels (AV1 and CV5 currently supported)
+2. WES
+3. WGS CNV (simple pipeline for WGS CNV)
+4. WGS (full analysis)
+
+The script takes mapped data (CRAM files) OR raw data (fastq) as input.
+
+# Usage
+
+## Panels
+
+
+
 The only requirement is a tab-delimited samplesheet containing 4 columns without headerline in this specific order:
 
 caseID/projectID, NPN, Relation, SampleStatus

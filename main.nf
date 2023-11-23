@@ -41,6 +41,8 @@ def helpMessage() {
 
     Usage:
 
+
+
     The only requirement is a samplesheet containing 4 columns without headerline in this specific order:
     famID/projektNavn, NPN, Relation, SampleStatus
 
@@ -70,7 +72,7 @@ def helpMessage() {
 
       --hg38v2          Use hg38 v2 (ucsc.hg38.NGS.analysisSet.fa).
       
-      --samplesheet     Path to samplesheet for samples to be analyzed  
+      --samplesheet     Path to samplesheet for samples to be analyzed (Only required for WGS analysis)
       
       --fastq            Path to folder with wgs fastq files
                             Default: /lnx01_data2/shared/dataArchive/{all subfolders}
@@ -87,7 +89,7 @@ def helpMessage() {
       --outdir          Manually set output directory
                             Default: {current_dir}/WGS_results.{DATE}
     
-    Select or modify analysis steps (optional - do not use them for regular standard analyses):
+    Select or modify analysis steps (NB: ONLY FOR WGS ANALYSIS! Optional - do not use them for regular standard analyses):
       --skipVariants    Do not call SNPs and INDELs at all
                             Default: Call SNPs and INDELs using GATK HaplotypeCaller
 

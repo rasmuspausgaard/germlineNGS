@@ -1219,7 +1219,7 @@ workflow SUB_VARIANTCALL {
             .map { tuple(panelID, it) }
             .set {gvcfsamples_for_GATK}
     }
-    gvcfsamples_for_GATK.view{"final_gvcfsamples_for_GATK: $it"}
+
     jointgenotyping(gvcfsamples_for_GATK)
     
     if (panelID=="AV1"){

@@ -198,9 +198,9 @@ switch (params.panel) {
     break;
 
     default: 
-        reads_pattern_cram="*{-,.,_}{WG3,WG4,LIB,WG4_CNV}{-,.,_}*.cram";
-        reads_pattern_crai="*{-,.,_}{WG3,WG4,LIB,WG4_CNV}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{WG3,WG4,LIB,WG4_CNV}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_cram="*{-,.,_}{WG3,WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.cram";
+        reads_pattern_crai="*{-,.,_}{WG3,WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.crai";
+        reads_pattern_fastq="*{-,.,_}{WG3,WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*R{1,2}*{fq,fastq}.gz";
         panelID="WGS"
     break;
 }

@@ -27,7 +27,7 @@ params.skipQC                   =null
 params.skipSTR                  =null
 params.skipSMN                  =null
 //Preset parameters:
-params.gatk                     ="new"
+params.gatk                     =null
 
 params.server                   = "lnx01"
 params.genome                   = "hg38"
@@ -42,14 +42,12 @@ def helpMessage() {
 
     Usage:
 
-    KG Vejle Germline script (WGS or panels)
+    KG Vejle Germline script (WGS, WES or panels)
 
     PANEL ANALYSIS:
 
 
     WGS ANALYSIS:
-    The only requirement is a samplesheet containing 4 columns without headerline in this specific order:
-    famID/projektNavn, NPN, Relation, SampleStatus
 
     Example samplesheet for standard trio:
     johnDoe 123456789012    index   affected
@@ -71,11 +69,14 @@ def helpMessage() {
       --help            Print this help message
       
       --genome          hg19 or hg38
-                            Default: hg38 v3 (NGC version incl. masked + decoys)
+                            Default: hg38 v3 (masked + decoys)
 
       --hg38v1          Use primary (full) hg38 assembly (UCSC primary).
 
       --hg38v2          Use hg38 v2 (ucsc.hg38.NGS.analysisSet.fa).
+
+      --gatk            "danak" (v.4.1.9) or "new" (v.4.4.0.0)
+                            Default: danak  
       
       --samplesheet     Path to samplesheet for samples to be analyzed (Only required for WGS analysis)
       
@@ -87,19 +88,19 @@ def helpMessage() {
       
       --cram             Path to folder with wgs CRAM files
                             Default: /lnx01_data2/shared/dataArchive/{all subfolders}
-
-      --single           Analyze all samples in samplesheet as single WGS (e.g no jointgenotyping, merging of SV calls etc.)
-                            Default: Not set - analyze all samples together
       
       --outdir          Manually set output directory
                             Default: {current_dir}/Results
 
     Panel analysis:
-      --skipSpliceAI
+
+      --skipSpliceAI    Do not run SpliceAI (NB: spliceAI onlu for AV1 panel data currently)
+                            Default: not set - run SpliceAI
 
 
 
     WGS Analysis: Select or modify analysis steps:
+
       --skipVariants    Do not call SNPs and INDELs at all
                             Default: Call SNPs and INDELs using GATK HaplotypeCaller
 
@@ -303,8 +304,8 @@ if (params.cram && params.panel) {
 // If only samplesheet is provided, use CRAM from archive as input (default setup)!
 
 if (params.samplesheet && !params.cram && !params.fastqInput && !params.fastq) {
-    cramfiles="${dataArchive}/{lnx01,kga01_novaRuns,tank_kga_external_archive}/**/${reads_pattern_cram}"
-    craifiles="${dataArchive}/{lnx01,kga01_novaRuns,tank_kga_external_archive}/**/${reads_pattern_crai}"
+    cramfiles="${dataArchive}/{lnx01,tank_kga_external_archive}/**/${reads_pattern_cram}"
+    craifiles="${dataArchive}/{lnx01,tank_kga_external_archive}/**/${reads_pattern_crai}"
 
     Channel
     .fromPath(cramfiles)

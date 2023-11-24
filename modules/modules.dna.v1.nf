@@ -1128,7 +1128,6 @@ workflow SUB_VARIANTCALL {
     haplotypecaller.out.sample_gvcf
     .map{ tuple(it.simpleName, it) }
     .set { gvcf_list }
-    gvcf_list.view {"gvcf_list: $it"}
     if (panelID=="AV1"){
         gvcf_list
             .filter {it =~/_CV6/}

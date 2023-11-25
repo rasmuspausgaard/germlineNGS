@@ -65,7 +65,7 @@ Analyze WGS CNV (minimal pipeline, CNV calls in VarSeq), starting from cram:
 ## WGS
 
 WGS analysis is only supported at the lnx01 server. 
-WGS analysis requires a tab-delimited samplesheet containing 4 columns without headerline in this specific order:
+WGS analysis requires the user to point to a folder with inputdata (FastQ or CRAM) or a tab-delimited samplesheet containing 4 columns without headerline in this specific order:
 
 caseID/projectID, NPN, Relation, SampleStatus
 

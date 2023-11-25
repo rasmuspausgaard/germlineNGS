@@ -20,9 +20,9 @@ The tools used and output generated depends on how the pipeline is run, i.e. if 
 
 ## Panels (AV1, WGS_CNV, CV5, WES)
 
-Analysis steps depending on the type of input data (FastQ or CRAM) and panel selected:
-- If fastq is used as input (using --fastq /path/to/fastq/): Read preprocessing, alignment, variantcalling and joint genotyping.
-- If CRAM is used as input (using --cram /path/to/cram/): Variantcalling and joint genotyping.
+Analysis steps:
+- If fastq is used as input (using --fastq /path/to/fastq/) perform read preprocessing, alignment, variantcalling and joint genotyping.
+- If CRAM is used as input (using --cram /path/to/cram/) perform Variantcalling and joint genotyping.
 - Creates a merged (joint Genotyped) VCF for all analyzed samples.
 - For AV1 panels and WES (ALM and ONK), joint genotyping is also run per subpanel.
 - for AV1 panels, SpliceAI is run by default (spliceAI can be skipped with "--skipSpliceAI", see usage below

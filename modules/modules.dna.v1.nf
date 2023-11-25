@@ -1222,7 +1222,7 @@ workflow SUB_VARIANTCALL {
 
     jointgenotyping(gvcfsamples_for_GATK)
     
-    if (panelID=="AV1"){
+    if (panelID=="AV1" && params.server!="kga01"){
         spliceAI(jointgenotyping.out.spliceAI_input)
     }
 }

@@ -29,7 +29,9 @@ Analysis steps:
 
 NOTE: CRAM should be used as input, if possible.
 
-NOTE: This pipeline can be run from both servers (kga01 and lnx01) when analyzing paneldata, except for SpliceAI. The pipeline assumes the lnx01 server is used by default. If this pipeline is run from kga01, make sure to set the "--server kga01" parameter. SpliceAI is disabled when running this pipeline for paneldata at the kga01 server.
+NOTE: This pipeline can be run from both servers (kga01 and lnx01) when analyzing paneldata, except for SpliceAI. The pipeline assumes the lnx01 server is used by default. If this pipeline is run from kga01, make sure to set the "--server kga01" parameter. 
+
+NOTE: SpliceAI is disabled when running this pipeline for paneldata at the kga01 server.
 
 Run the pipeline with --help to see available options and default parameters:
 

@@ -33,7 +33,7 @@ NOTE: This pipeline can be run from both servers (kga01 and lnx01) when analyzin
 
 NOTE: SpliceAI is disabled when running this pipeline for paneldata at the kga01 server.
 
-Run the pipeline with --help to see available options and default parameters:
+#### Run the pipeline with --help to see available options and default parameters:
 
     nextflow run KGVejle/germlineNGS -r main --help
 
@@ -101,22 +101,22 @@ Submodules can be disabled at command line.
 
 ### Common use cases:
 
-Analyze samples in samplesheet, starting with CRAM. Run full pipeline:
+#### Analyze samples in samplesheet, starting with CRAM. Run full pipeline:
    
     nextflow run KGVejle/germlineNGS -r main --samplesheet /path/to/samplesheet/
 
 
-Analyze samples in samplesheet, starting with fastq:
+#### Analyze samples in samplesheet, starting with fastq:
    
     nextflow run KGVejle/germlineNGS -r main --samplesheet /path/to/samplesheet/ --fastqInput 
     
 
-Analyze samples in samplesheet, starting with CRAM. Do not run QC and STR analysis:
+#### Analyze samples in samplesheet, starting with CRAM. Do not run QC and STR analysis:
    
     nextflow run KGVejle/germlineNGS -r main --samplesheet /path/to/samplesheet/ --skipQC --skipSTR
 
 
-Analyze all WGS data in folder (no samplesheet), starting with CRAM files:
+#### Analyze all WGS data in folder (no samplesheet), starting with CRAM files:
 
     nextflow run KGVejle/germlineNGS -r main --cram /path/to/cram/ 
 

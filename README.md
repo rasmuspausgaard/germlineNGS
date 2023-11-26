@@ -44,19 +44,19 @@ Run the pipeline with --help to see available options and default parameters:
 
 For panel analysis, the user must use either --cram /path/to/cram/ or --fastq /path/to/fastq/ 
 
-Analyze AV1 samples, starting with cram
+#### Analyze AV1 samples, starting with cram
    
     nextflow run KGVejle/germlineNGS -r main --panel AV1 --cram /path/to/cram/
 
-Analyze AV1 samples, starting with fastq, do not run SpliceAI
+#### Analyze AV1 samples, starting with fastq, do not run SpliceAI
    
     nextflow run KGVejle/germlineNGS -r main --panel AV1 --fastq /path/to/fastq/ --skipSpliceAI
 
-Analyze ALM / ONK WES samples:
+#### Analyze ALM / ONK WES samples:
 
     nextflow run KGVejle/germlineNGS -r main --panel WES --fastq /path/to/fastq/
 
-Analyze WGS CNV (minimal pipeline, CNV calls in VarSeq), starting from cram:
+#### Analyze WGS CNV (minimal pipeline, CNV calls in VarSeq), starting from cram:
 
     nextflow run KGVejle/germlineNGS -r main --panel WGS_CNV --cram /path/to/cram/
 

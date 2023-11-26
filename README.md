@@ -25,7 +25,7 @@ Analysis steps:
 - If CRAM is used as input (using --cram /path/to/cram/) perform Variantcalling and joint genotyping.
 - Creates a merged (joint Genotyped) VCF for all analyzed samples.
 - For AV1 panels and WES (ALM and ONK), joint genotyping is also run per subpanel.
-- for AV1 panels, SpliceAI is run by default (spliceAI can be skipped with "--skipSpliceAI", see usage below
+- for AV1 panels, SpliceAI is run by default (spliceAI can be skipped with "--skipSpliceAI", see usage below).
 
 NOTE: CRAM should be used as input, if possible.
 
@@ -64,7 +64,7 @@ Analyze WGS CNV (minimal pipeline, CNV calls in VarSeq), starting from cram:
 
 ## WGS
 
-WGS analysis is only supported at the lnx01 server. 
+#### NOTE: WGS analysis is only supported at the lnx01 server. 
 WGS analysis requires the user to point to a folder with inputdata (FastQ or CRAM) or a tab-delimited samplesheet containing 4 columns without headerline in this specific order:
 
 caseID/projectID, NPN, Relation, SampleStatus
@@ -82,7 +82,7 @@ The above information can usually be extracted directly from the sample overview
 If the inputdata (FastQ or CRAM) has been transferred to the data archive (which it is by default), the pipeline will automatically find the relevant inputdata and create symlinks for them in the output folder, if --samplesheet /path/to/samplesheet/ is used.
 
 The user can point to a specific folder containing raw data (FastQ) using the --fastq option or alignment data (CRAM) using the --cram option
-This is only needed if input data (FastQ or CRAM) exists outside the data archive (e.g. if data are in personal folders), or if the pipelie is run without samplesheet.
+This is only needed if input data (FastQ or CRAM) exists outside the data archive (e.g. if data are in personal folders), or if the pipeline is run without samplesheet.
 
 ### Default settings:
 

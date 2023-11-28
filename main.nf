@@ -210,8 +210,11 @@ switch (params.panel) {
 ////////////////////////////////////////////////////
 ////// INPUT DATA (fastq or CRAM) channels //////////
 ////////////////////////////////////////////////////
-if (params.fastq) {
+if (params.fastq && !params.preprocessOnly) {
     params.reads="${params.fastq}/${reads_pattern_fastq}"
+}
+if (params.fastq&& params.preprocessOnly) {
+    params.reads="${params.fastq}/*{.,_,-}{R1,R2}*.gz"
 }
 
 if (!params.fastq && params.fastqInput) {

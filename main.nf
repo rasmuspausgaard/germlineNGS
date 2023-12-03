@@ -268,7 +268,7 @@ if (params.samplesheet && params.fastq || params.fastqInput) {
 
 
 
-if (params.cram && !params.panel) {
+if (params.cram && !params.panel && !params.samplesheet) {
 
     cramfiles="${params.cram}/${reads_pattern_cram}"
     craifiles="${params.cram}/${reads_pattern_crai}"
@@ -284,7 +284,7 @@ if (params.cram && !params.panel) {
     .set {sampleID_crai }
 }
 
-if (params.cram && params.panel) {
+if (params.cram && (params.panel || params.samplesheet)) {
 
     cramfiles="${params.cram}/${reads_pattern_cram}"
     craifiles="${params.cram}/${reads_pattern_crai}"

@@ -176,6 +176,15 @@ switch (params.panel) {
         panelID="CV5"
     break;
 
+    case "GV3":
+        reads_pattern_cram="*{GV1,GV2,GV3}*.cram";
+        reads_pattern_crai="*{GV1,GV2,GV3}*.crai";
+        reads_pattern_fastq="*{GV1,GV2,GV3}*R{1,2}*{fq,fastq}.gz";
+        panelID="GV3"
+    break;
+
+
+
     case "WES_2":
         reads_pattern_cram="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.cram";
         reads_pattern_crai="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.crai";
@@ -263,12 +272,12 @@ if (params.samplesheet && params.fastq || params.fastqInput) {
 }
 
 
-// Standard use: POint to fastq for WGS ana
+// Standard use: Point to fastq for WGS ana
 
 
 
 
-if (params.cram && !params.panel) {
+if (params.cram && !params.panel && !params.samplesheet) {
 
     cramfiles="${params.cram}/${reads_pattern_cram}"
     craifiles="${params.cram}/${reads_pattern_crai}"
@@ -284,7 +293,7 @@ if (params.cram && !params.panel) {
     .set {sampleID_crai }
 }
 
-if (params.cram && params.panel) {
+if (params.cram && (params.panel || params.samplesheet)) {
 
     cramfiles="${params.cram}/${reads_pattern_cram}"
     craifiles="${params.cram}/${reads_pattern_crai}"
@@ -416,11 +425,7 @@ workflow QC {
 
 workflow {
 
-    if (params.preprocessOnly) {
-        SUB_PREPROCESS(fq_read_input)
-    }
-
-    if (!params.panel) {        // if not params.panel =WGS
+    if (!params.panel) { 
 
         if (params.fastqInput||params.fastq) {
             SUB_PREPROCESS(fq_read_input)
@@ -457,6 +462,7 @@ workflow {
             }
         }
     }
+
     if (params.panel) {
 
         if (params.fastqInput||params.fastq) {

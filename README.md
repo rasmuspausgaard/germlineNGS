@@ -39,7 +39,6 @@ NOTE: SpliceAI is disabled when running this pipeline for paneldata at the kga01
 
 
 
-
 ### Common use cases:
 
 For panel analysis, the user must use either --cram /path/to/cram/ or --fastq /path/to/fastq/ 

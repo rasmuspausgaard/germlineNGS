@@ -52,9 +52,13 @@ For panel analysis, the user must use either --cram /path/to/cram/ or --fastq /p
    
     nextflow run KGVejle/germlineNGS -r main --panel AV1 --fastq /path/to/fastq/ --skipSpliceAI
 
-#### Analyze ALM / ONK WES samples:
+#### Analyze ALM / ONK WES samples, starting with fastq:
 
     nextflow run KGVejle/germlineNGS -r main --panel WES --fastq /path/to/fastq/
+
+#### Analyze all WES (EV8), starting from cram:
+
+    nextflow run KGVejle/germlineNGS -r main --panel WES_2 --cran /path/to/cram/
 
 #### Analyze WGS CNV (minimal pipeline, CNV calls in VarSeq), starting from cram:
 

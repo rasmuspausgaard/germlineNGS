@@ -57,7 +57,7 @@ For panel analysis, the user must use either --cram /path/to/cram/ or --fastq /p
 
 #### Analyze all WES (EV8), starting from cram:
 
-    nextflow run KGVejle/germlineNGS -r main --panel WES_2 --cran /path/to/cram/
+    nextflow run KGVejle/germlineNGS -r main --panel WES_2 --cram /path/to/cram/
 
 #### Analyze WGS CNV (minimal pipeline, CNV calls in VarSeq), starting from cram:
 

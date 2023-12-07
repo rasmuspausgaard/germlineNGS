@@ -170,9 +170,9 @@ switch (params.panel) {
     break;
 
     case "CV5":
-        reads_pattern_cram="*{-CV5-,.CV5.}*.cram";
-        reads_pattern_crai="*{-CV5-,.CV5.}*.crai";
-        reads_pattern_fastq="*{-CV5-,.CV5.}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_cram="*{.,-,_}{CV5}{.,-,_}*.cram";
+        reads_pattern_crai="*{.,-,_}{CV5}{.,-,_}*.crai";
+        reads_pattern_fastq="*{.,-,_}{CV5}{.,-,_}*R{1,2}*{fq,fastq}.gz";
         panelID="CV5"
     break;
 

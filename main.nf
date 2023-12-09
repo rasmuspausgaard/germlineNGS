@@ -286,7 +286,7 @@ if (params.cram && !params.panel && !params.samplesheet) {
     .fromPath(cramfiles)
     .map { tuple(it.baseName.tokenize('_').get(0),it) }
     .set { sampleID_cram }
-
+sampleID_cram.view()
     Channel
     .fromPath(craifiles)
     .map { tuple(it.baseName.tokenize('_').get(0),it) }
@@ -337,7 +337,7 @@ if (params.samplesheet) {
         .map { row -> tuple(row[1], row[0],row[2],row[3])}
         .set { full_samplesheet }
     //above: NPN, caseID, relation, samplestatus
-
+full_samplesheet.view()
     channel.fromPath(params.samplesheet)
         .splitCsv(sep:'\t')
         .map { row -> row[0]}

@@ -183,8 +183,6 @@ switch (params.panel) {
         panelID="GV3"
     break;
 
-
-
     case "WES_2":
         reads_pattern_cram="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.cram";
         reads_pattern_crai="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.crai";

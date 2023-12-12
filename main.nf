@@ -170,9 +170,9 @@ switch (params.panel) {
     break;
 
     case "CV5":
-        reads_pattern_cram="*{-CV5-,.CV5.}*.cram";
-        reads_pattern_crai="*{-CV5-,.CV5.}*.crai";
-        reads_pattern_fastq="*{-CV5-,.CV5.}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_cram="*{.,-,_}{CV5}{.,-,_}*.cram";
+        reads_pattern_crai="*{.,-,_}{CV5}{.,-,_}*.crai";
+        reads_pattern_fastq="*{.,-,_}{CV5}{.,-,_}*R{1,2}*{fq,fastq}.gz";
         panelID="CV5"
     break;
 
@@ -182,8 +182,6 @@ switch (params.panel) {
         reads_pattern_fastq="*{GV1,GV2,GV3}*R{1,2}*{fq,fastq}.gz";
         panelID="GV3"
     break;
-
-
 
     case "WES_2":
         reads_pattern_cram="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.cram";
@@ -286,7 +284,7 @@ if (params.cram && !params.panel && !params.samplesheet) {
     .fromPath(cramfiles)
     .map { tuple(it.baseName.tokenize('_').get(0),it) }
     .set { sampleID_cram }
-
+sampleID_cram.view()
     Channel
     .fromPath(craifiles)
     .map { tuple(it.baseName.tokenize('_').get(0),it) }
@@ -337,7 +335,7 @@ if (params.samplesheet) {
         .map { row -> tuple(row[1], row[0],row[2],row[3])}
         .set { full_samplesheet }
     //above: NPN, caseID, relation, samplestatus
-
+full_samplesheet.view()
     channel.fromPath(params.samplesheet)
         .splitCsv(sep:'\t')
         .map { row -> row[0]}

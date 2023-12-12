@@ -1196,7 +1196,7 @@ workflow SUB_VARIANTCALL {
     }
 
     if (panelID=="WES_subpanel"){
-        gvcf_EV8_ONK
+        gvcf_list
                 .filter {it =~/_ONK/}
                 .map{" -V "+ it[1] }
                 .collectFile(name: "collectfileTEST_EV8_ONK.txt", newLine: false)
@@ -1204,7 +1204,7 @@ workflow SUB_VARIANTCALL {
                 .map { tuple("EV8_ONK",it) }
                 .set {onk_ev8_gatk}
 
-        gvcf_EV8_ALM
+        gvcf_list
                 .filter {it =~/_ALM/}
                 .map{" -V "+ it[1] }
                 .collectFile(name: "collectfileTEST_EV8_ALM.txt", newLine: false)

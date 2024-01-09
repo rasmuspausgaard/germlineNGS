@@ -176,6 +176,12 @@ switch (params.panel) {
         panelID="GV3"
     break;
 
+    case "GV_TEST":
+        ROI="${GV3_ROI}";
+        panelID="GV_TEST"
+    break;
+
+
     case "WES_2":
         ROI="${WES_ROI}";
         panelID="WES"

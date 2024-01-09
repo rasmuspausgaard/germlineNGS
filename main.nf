@@ -183,6 +183,14 @@ switch (params.panel) {
         panelID="GV3"
     break;
 
+    case "GV_TEST":
+        reads_pattern_cram="*.cram";
+        reads_pattern_crai="*.crai";
+        reads_pattern_fastq="*R{1,2}*{fq,fastq}.gz";
+        panelID="GV_TEST"
+    break;
+
+
     case "WES_2":
         reads_pattern_cram="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.cram";
         reads_pattern_crai="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.crai";

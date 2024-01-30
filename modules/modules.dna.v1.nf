@@ -24,6 +24,16 @@ switch (params.gatk) {
 
 
 switch (params.server) {
+    case 'lnx02':
+        s_bind="/data/:/data/,/lnx01_data2/:/lnx01_data2/,/fast/:/fast/,/lnx01_data3/:/lnx01_data3/";
+        simgpath="/data/shared/programmer/simg";
+        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
+        tmpDIR="/data/TMP/TMP.${user}/";
+        gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
+        multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
+        tank_storage="/home/mmaj/tank.kga/data/data.storage.archive/";
+        //modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules/";
+    break;
     case 'lnx01':
         s_bind="/data/:/data/,/lnx01_data2/:/lnx01_data2/";
         simgpath="/data/shared/programmer/simg";
@@ -156,7 +166,7 @@ switch (params.genome) {
         GV3_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/gv3.hg38.ROI.v2.bed"
         NV1_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/nv1.hg38.ROI.bed"
         WES_ROI="/data/shared/genomes/hg38/interval.files/exome.ROIs/211130.hg38.refseq.gencode.fullexons.50bp.SM.bed"
-
+        MV1_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/muc1.hg38.coordinates.bed"
         break;
 }
 
@@ -181,6 +191,10 @@ switch (params.panel) {
         panelID="GV_TEST"
     break;
 
+    case "MUC1":
+        ROI="${MV1_ROI}";
+        panelID="MUC1_MV1"
+    break;
 
     case "WES_2":
         ROI="${WES_ROI}";

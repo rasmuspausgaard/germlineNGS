@@ -145,6 +145,12 @@ if (params.cram && params.fastq) exit 0, FastqCRAM_error()
 
 
 switch (params.server) {
+    case 'lnx02':
+       // modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules";
+        //subworkflow_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows";
+        dataArchive="/lnx01_data2/shared/dataArchive";
+    break;
+
     case 'lnx01':
         modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules";
         subworkflow_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows";
@@ -188,6 +194,13 @@ switch (params.panel) {
         reads_pattern_crai="*.crai";
         reads_pattern_fastq="*R{1,2}*{fq,fastq}.gz";
         panelID="GV_TEST"
+    break;
+
+    case "MUC1":
+        reads_pattern_cram="*{MV1}*.cram";
+        reads_pattern_crai="*{MV1}*.crai";
+        reads_pattern_fastq="*{MV1}*R{1,2}*{fq,fastq}.gz";
+        panelID="MUC1"
     break;
 
 

@@ -28,7 +28,7 @@ switch (params.server) {
         s_bind="/data/:/data/,/lnx01_data2/:/lnx01_data2/,/fast/:/fast/,/lnx01_data3/:/lnx01_data3/";
         simgpath="/data/shared/programmer/simg";
         params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
-        tmpDIR="/data/TMP/TMP.${user}/";
+        tmpDIR="/fast/TMP/TMP.${user}/";
         gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
         multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
         tank_storage="/home/mmaj/tank.kga/data/data.storage.archive/";

@@ -1009,14 +1009,14 @@ process merge4callerSVDB {
     script:
     """
     singularity exec  \
-    --bind /data/:/data/,/lnx01_data2/:/lnx01_data2/ /data/shared/programmer/FindSV/FindSV.simg svdb \
+    --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
     --merge \
     --overlap 0.6 \
     --vcf ${manta_vcf}:MANTA ${lumpy_vcf}:LUMPY ${cnvkit_vcf}:CNVKIT ${tiddit_vcf}:TIDDIT \
     --priority LUMPY,MANTA,CNVKIT,TIDDIT > ${sampleID}.4caller.SVDB.merged.60pctOverlap.vcf
 
     singularity exec  \
-    --bind /data/:/data/,/lnx01_data2/:/lnx01_data2/ /data/shared/programmer/FindSV/FindSV.simg svdb \
+    --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
     --merge \
     --overlap 0.8 \
     --vcf ${manta_vcf}:MANTA ${lumpy_vcf}:LUMPY ${cnvkit_vcf}:CNVKIT ${tiddit_vcf}:TIDDIT \
@@ -1024,7 +1024,7 @@ process merge4callerSVDB {
 
 
     singularity exec  \
-    --bind /data/:/data/,/lnx01_data2/:/lnx01_data2/ /data/shared/programmer/FindSV/FindSV.simg svdb \
+    --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
     --merge \
     --overlap 1.0 \
     --vcf ${manta_vcf}:MANTA ${lumpy_vcf}:LUMPY ${cnvkit_vcf}:CNVKIT ${tiddit_vcf}:TIDDIT \

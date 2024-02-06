@@ -1105,7 +1105,7 @@ process smnCopyNumberCaller {
     
     script:
     """
-    python /data/shared/programmer/SMNCopyNumberCaller-1.1.2/smn_caller.py \
+    python3 /data/shared/programmer/SMNCopyNumberCaller-1.1.2/smn_caller.py \
     --manifest ${manifest} \
     --genome ${smncaller_assembly} \
     --prefix ${params.rundir} \

@@ -27,31 +27,31 @@ switch (params.server) {
     case 'lnx02':
         s_bind="/data/:/data/,/lnx01_data2/:/lnx01_data2/,/fast/:/fast/,/lnx01_data3/:/lnx01_data3/";
         simgpath="/data/shared/programmer/simg";
-        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
         tmpDIR="/fast/TMP/TMP.${user}/";
         gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
         multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
         tank_storage="/home/mmaj/tank.kga/data/data.storage.archive/";
+        refFilesDir="/fast/shared/genomes";
         //modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules/";
     break;
     case 'lnx01':
         s_bind="/data/:/data/,/lnx01_data2/:/lnx01_data2/";
         simgpath="/data/shared/programmer/simg";
-        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
         tmpDIR="/data/TMP/TMP.${user}/";
         gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
         multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
         tank_storage="/home/mmaj/tank.kga2/data/data.storage.archive/";
         modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules/";
+        refFilesDir="/data/shared/genomes";
     break;
     case 'kga01':
         simgpath="/data/shared/programmer/simg";
         s_bind="/data/:/data/";
         tmpDIR="/data/TMP/TMP.${user}/";
-        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
         gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
         tank_storage="/home/mmaj/tank.kga/data/data.storage.archive/";
         modules_dir="/home/mmaj/LNX01_mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules/";
+        refFilesDir="/data/shared/genomes";
     break;
 }
 
@@ -72,9 +72,9 @@ switch (params.genome) {
         smncaller_assembly="38"
         // Genome assembly files:
         if (params.hg38v1) {
-        genome_fasta = "/data/shared/genomes/hg38/GRCh38.primary.fa"
-        genome_fasta_fai = "/data/shared/genomes/hg38/GRCh38.primary.fa.fai"
-        genome_fasta_dict = "/data/shared/genomes/hg38/GRCh38.primary.dict"
+        genome_fasta = "${refFilesDir}/hg38/GRCh38.primary.fa"
+        genome_fasta_fai = "${refFilesDir}/hg38/GRCh38.primary.fa.fai"
+        genome_fasta_dict = "${refFilesDir}/hg38/GRCh38.primary.dict"
         genome_version="V1"
         cnvkit_germline_reference_PON="/data/shared/genomes/hg38/inhouse_DBs/hg38v1_primary/cnvkit/wgs_germline_PON/jgmr_45samples.reference.cnn"
         cnvkit_inhouse_cnn_dir="/data/shared/genomes/hg38/inhouse_DBs/hg38v1_primary/cnvkit/wgs_persample_cnn/"
@@ -82,38 +82,33 @@ switch (params.genome) {
         }
         
         if (params.hg38v2){
-        genome_fasta = "/data/shared/genomes/hg38/ucsc.hg38.NGS.analysisSet.fa"
-        genome_fasta_fai = "/data/shared/genomes/hg38/ucsc.hg38.NGS.analysisSet.fa.fai"
-        genome_fasta_dict = "/data/shared/genomes/hg38/ucsc.hg38.NGS.analysisSet.dict"
+        genome_fasta = "${refFilesDir}/hg38/ucsc.hg38.NGS.analysisSet.fa"
+        genome_fasta_fai = "${refFilesDir}/hg38/ucsc.hg38.NGS.analysisSet.fa.fai"
+        genome_fasta_dict = "${refFilesDir}/hg38/ucsc.hg38.NGS.analysisSet.dict"
         genome_version="V2"
         }
 
         // Current hg38 version (v3): NGC with masks and decoys.
         if (!params.hg38v2 && !params.hg38v1){
-        genome_fasta = "/data/shared/genomes/hg38/GRCh38_masked_v2_decoy_exclude.fa"
-        genome_fasta_fai = "/data/shared/genomes/hg38/GRCh38_masked_v2_decoy_exclude.fa.fai"
-        genome_fasta_dict = "/data/shared/genomes/hg38/GRCh38_masked_v2_decoy_exclude.dict"
+        genome_fasta = "${refFilesDir}/hg38/GRCh38_masked_v2_decoy_exclude.fa"
+        genome_fasta_fai = "${refFilesDir}/hg38/GRCh38_masked_v2_decoy_exclude.fa.fai"
+        genome_fasta_dict = "${refFilesDir}/hg38/GRCh38_masked_v2_decoy_exclude.dict"
         genome_version="V3"
         cnvkit_germline_reference_PON="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/cnvkit/hg38v3_109samples.cnvkit.reference.cnn"
         cnvkit_inhouse_cnn_dir="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/cnvkit/wgs_persample_cnn/"
-        inhouse_SV="/data/shared//genomes/hg38/inhouse_DBs/hg38v3_primary/"
+        inhouse_SV="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/"
         }
 
         // Gene and transcript annotation files:
+        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
 
-        gencode_gtf = "/data/shared/genomes/hg38/gene.annotations/gencode.v36.annotation.gtf"
-        gencode_gff3 = "/data/shared/genomes/hg38/gene.annotations/gencode.v36.annotation.gff3"
+        gencode_gtf = "${refFilesDir}/hg38/gene.annotations/gencode.v36.annotation.gtf"
+        gencode_gff3 = "${refFilesDir}/hg38/gene.annotations/gencode.v36.annotation.gff3"
      
         //Program  files:
-        msisensor_list="/data/shared/genomes/hg38/program_DBs/msisensor/hg38_msisensor_scan.txt"
+        msisensor_list="${refFilesDir}/hg38/program_DBs/msisensor/hg38_msisensor_scan.txt"
         
-        accucopy_config="/data/shared/genomes/hg38/accucopy/accucopy.docker.nextflow.conf"
-        cnvradar_anno="/data/shared/genomes/hg38/program_DBs/cnvradar/All_20180418.vcf.gz"
-        cnvradar_anno_idx="/data/shared/genomes/hg38/program_DBs/cnvradar/All_20180418.vcf.gz.tbi"
-        cnvradar_ROI="/data/shared/genomes/hg38/interval.files/210129.hg38.gencode36.codingexons.SM.bed" 
-
-        cnvradar_roisum_dir="/data/shared/genomes/hg38/program_DBs/cnvradar/inhouse_roi_summaries/"
-        
+      
         //Structural variants
         delly_exclude="/data/shared/genomes/hg38/program_DBs/delly/human.hg38.excl.tsv"
         

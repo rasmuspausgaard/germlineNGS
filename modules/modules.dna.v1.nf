@@ -17,6 +17,8 @@ switch (params.gatk) {
     case 'new':
     gatk_image="gatk4400.sif";
     break;
+    case 'v45':
+    gatk_image="gatk4500.sif";
     default:
     gatk_image="gatk419.sif";
     break;
@@ -674,7 +676,7 @@ process jointgenotyping {
 
 process haplotypecallerSplitIntervals {
     errorStrategy 'ignore'
-    maxForks 9
+    maxForks 20
 
     input:
     tuple val(sampleID), path(bam), path(bai), val(sub_intID), path(sub_interval) //from HC_scatter_input_bam.combine(interval_list1)

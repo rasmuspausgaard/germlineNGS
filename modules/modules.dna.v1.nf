@@ -561,7 +561,7 @@ process multiQC {
 //////////////////////////// VARIANT CALLING MODULES //////////////////////////////////
 process haplotypecaller{
         errorStrategy 'ignore'
-        maxForks 10
+        maxForks 30
         cpus 4
         tag "$sampleID"
         publishDir "${outputDir}/Variants/per_sample/", mode: 'copy', pattern: "*.HC.*"
@@ -686,13 +686,13 @@ process haplotypecallerSplitIntervals {
 
     script:
     """
-    ${gatk_exec} --java-options "-Xmx4G -XX:+UseParallelGC -XX:ParallelGCThreads=30" HaplotypeCaller \
+    ${gatk_exec} --java-options "-Xmx4G -XX:+UseParallelGC -XX:ParallelGCThreads=4" HaplotypeCaller \
     -I ${bam} \
     -R ${genome_fasta} \
     -ERC GVCF \
     -L ${sub_interval} \
     --smith-waterman FASTEST_AVAILABLE \
-    --native-pair-hmm-threads 30 \
+    --native-pair-hmm-threads 4 \
     -pairHMM FASTEST_AVAILABLE \
     --dont-use-soft-clipped-bases \
     -O ${sampleID}.${sub_intID}.g.vcf

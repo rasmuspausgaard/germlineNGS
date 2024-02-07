@@ -584,13 +584,13 @@ process haplotypecaller{
 
         script:
         """
-        ${gatk_exec} --java-options "-Xmx4G -XX:+UseParallelGC -XX:ParallelGCThreads=30" HaplotypeCaller \
+        ${gatk_exec} --java-options "-Xmx4G -XX:+UseParallelGC -XX:ParallelGCThreads=4" HaplotypeCaller \
         -I ${aln} \
         -R ${genome_fasta} \
         -ERC GVCF \
         -L ${ROI} \
         --smith-waterman FASTEST_AVAILABLE \
-        --native-pair-hmm-threads 30 \
+        --native-pair-hmm-threads 4 \
         -pairHMM FASTEST_AVAILABLE \
         --dont-use-soft-clipped-bases \
         -O ${sampleID}.${params.genome}.${genome_version}.g.vcf \

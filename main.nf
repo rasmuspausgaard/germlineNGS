@@ -33,7 +33,7 @@ params.server                   = "lnx01"
 params.genome                   = "hg38"
 params.outdir                   = "${launchDir.baseName}.Results"
 params.rundir                   = "${launchDir.baseName}"
-params.intervals_list           ="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
+//params.intervals_list           ="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
 
 
 
@@ -402,10 +402,12 @@ if (params.samplesheet && !params.fastqInput && !params.fastq) {
 //////// END: Combine input and samplesheet //////////
 
 ///// Haplotypecaller splitintervals channel: /////
+/*
 channel
     .fromPath(params.intervals_list)
     .map { it -> tuple(it.baseName,it)}
     .set { haplotypecallerIntervalList }
+*/
 ////////////////////////////////////////////////////
 
 include { 

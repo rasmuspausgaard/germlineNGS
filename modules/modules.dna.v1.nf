@@ -792,7 +792,7 @@ process manta {
     publishDir "${outputDir}/structuralVariants/manta/allOutput/", mode: 'copy'
 
     cpus 10
-    maxForks 3
+    maxForks 10
 
     input:
     tuple val(sampleID), path(aln), path(index)
@@ -866,7 +866,7 @@ process lumpy {
     publishDir "${outputDir}/structuralVariants/lumpy/", mode: 'copy'
     
     cpus 1
-    maxForks 3
+    maxForks 10
 
     input:
 
@@ -907,7 +907,7 @@ process tiddit361 {
     publishDir "${outputDir}/structuralVariants/tiddit/", mode: 'copy'
     
     cpus 10
-    maxForks 3
+    maxForks 10
 
     input:
     tuple val(sampleID), path(aln), path(index) 
@@ -933,6 +933,7 @@ process cnvkit {
     errorStrategy 'ignore'
     tag "$sampleID"
 
+    maxForks 10
     publishDir "${outputDir}/structuralVariants/cnvkit/", mode: 'copy'
     publishDir "${cnvkit_inhouse_cnn_dir}", mode: 'copy', pattern: '*.targetcoverage.cnn'
 

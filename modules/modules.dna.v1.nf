@@ -865,8 +865,8 @@ process lumpy {
     publishDir "${inhouse_SV}/lumpy/raw_calls/", mode: 'copy', pattern: "*.Lumpy_altmode_step1.vcf"
     publishDir "${outputDir}/structuralVariants/lumpy/", mode: 'copy'
     
-    cpus 2
-    maxForks 10
+    cpus 5
+    maxForks 5
 
     input:
 
@@ -907,7 +907,7 @@ process tiddit361 {
     publishDir "${outputDir}/structuralVariants/tiddit/", mode: 'copy'
     
     cpus 10
-    maxForks 10
+    maxForks 3
 
     input:
     tuple val(sampleID), path(aln), path(index) 

@@ -935,7 +935,7 @@ process cnvkit {
 
     maxForks 10
     publishDir "${outputDir}/structuralVariants/cnvkit/", mode: 'copy'
-    publishDir "${inhouse_SV}/CNVkit/CNNfiles/", mode: 'copy', pattern: '*.targetcoverage.cnn'
+    publishDir "${inhouse_SV}/CNVkit/CNNfiles/", mode: 'copy', pattern: '*.cnn'
 
     input:
     tuple val(sampleID), path(aln), path(index)

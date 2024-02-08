@@ -101,7 +101,7 @@ switch (params.genome) {
         genome_version="V3"
         cnvkit_germline_reference_PON="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/cnvkit/hg38v3_109samples.cnvkit.reference.cnn"
         cnvkit_inhouse_cnn_dir="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/cnvkit/wgs_persample_cnn/"
-        inhouse_SV="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/"
+        inhouse_SV="/data/shared/genomes/hg38/inhouse_DBs/hg38v3/"
         }
 
         // Gene and transcript annotation files:
@@ -935,7 +935,7 @@ process cnvkit {
 
     maxForks 10
     publishDir "${outputDir}/structuralVariants/cnvkit/", mode: 'copy'
-    publishDir "${cnvkit_inhouse_cnn_dir}", mode: 'copy', pattern: '*.targetcoverage.cnn'
+    publishDir "${inhouse_SV}/CNVkit/CNNfiles/", mode: 'copy', pattern: '*.targetcoverage.cnn'
 
     input:
     tuple val(sampleID), path(aln), path(index)

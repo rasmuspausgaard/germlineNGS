@@ -998,6 +998,10 @@ process merge4callerSVDB {
 
     //publishDir "${outputDir}/all_callers_merged/", mode: 'copy'
     publishDir "${outputDir}/structuralVariants/SVDB_merged/", mode: 'copy', pattern: "*.4caller.SVDB.merged.*"
+    publishDir "${outputDir}/structuralVariants/SVDB_merged/60pctOverlap/", mode: 'copy', pattern: "*.60pctOverlap.*"
+    publishDir "${outputDir}/structuralVariants/SVDB_merged/80pctOverlap/", mode: 'copy', pattern: "*.80pctOverlap.*"
+    publishDir "${outputDir}/structuralVariants/SVDB_merged/100pctOverlap/", mode: 'copy', pattern: "*.100pctOverlap.*"
+
     //publishDir "${outputDir}/", mode: 'copy', pattern: '*.vcf'
     //container 'kfdrc/manta:1.6.0'
     maxForks 12

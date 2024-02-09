@@ -967,7 +967,7 @@ process cnvkit {
 process cnvkitExportFiles {
     errorStrategy 'ignore'
     tag "$sampleID"
-    publishDir "${inhouse_SV}/cnvkit/raw_calls/", mode: 'copy', pattern: '*.cnvkit.vcf'
+    publishDir "${inhouse_SV}/CNVkit/raw_calls/", mode: 'copy', pattern: '*.cnvkit.vcf'
     publishDir "${outputDir}/structuralVariants/cnvkit/", mode: 'copy'
 
     input:

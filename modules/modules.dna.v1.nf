@@ -906,7 +906,7 @@ process tiddit361 {
     publishDir "${inhouse_SV}/tiddit/RAW_calls/", mode: 'copy', pattern: "*.tiddit.vcf"
     publishDir "${outputDir}/structuralVariants/tiddit/", mode: 'copy'
     
-    cpus 1
+    cpus 2
     maxForks 15
 
     input:

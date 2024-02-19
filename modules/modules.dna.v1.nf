@@ -791,8 +791,8 @@ process manta {
     publishDir "${inhouse_SV}/manta/raw_calls/", mode: 'copy', pattern: " ${sampleID}.manta.diploidSV.*"
     publishDir "${outputDir}/structuralVariants/manta/allOutput/", mode: 'copy'
 
-    cpus 10
-    maxForks 10
+    cpus 5
+    maxForks 5
 
     input:
     tuple val(sampleID), path(aln), path(index)
@@ -933,7 +933,7 @@ process cnvkit {
     errorStrategy 'ignore'
     tag "$sampleID"
 
-    maxForks 10
+    maxForks 5
     publishDir "${outputDir}/structuralVariants/cnvkit/", mode: 'copy'
     publishDir "${inhouse_SV}/CNVkit/CNNfiles/", mode: 'copy', pattern: '*.cnn'
 

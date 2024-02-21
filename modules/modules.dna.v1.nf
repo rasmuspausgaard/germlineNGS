@@ -2,7 +2,8 @@
 nextflow.enable.dsl = 2
 
 
-date=new Date().format( 'yyMMdd HH:mm:ss' )
+date=new Date().format( 'yyMMdd' )
+date2=new Date().format( 'yyMMdd HH:mm:ss' )
 user="$USER"
 runID="${date}.${user}"
 
@@ -249,6 +250,7 @@ GATK ver.    : $gatk_image
 Server       : $params.server
 RunID        : $runID
 PanelID      : $panelID
+Script start : $date2
 """
 
 

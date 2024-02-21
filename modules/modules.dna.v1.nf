@@ -2,7 +2,7 @@
 nextflow.enable.dsl = 2
 
 
-date=new Date().format( 'yyMMdd' )
+date=new Date().format( 'yyMMdd HH:mm:ss' )
 user="$USER"
 runID="${date}.${user}"
 

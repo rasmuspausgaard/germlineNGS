@@ -537,22 +537,23 @@ workflow.onComplete {
 }
 
 workflow.onError {
-    // Custom message to be sent when the workflow completes
-    def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
+    if (System.getenv("USER") in ["raspau", "mmaj"]) {
+        // Custom message to be sent when the workflow completes
+        def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
                    params.fastq ? new File(params.fastq).getName().take(6) : 'Not provided'
 
-    def body = """\
-    Pipeline execution summary
-    ---------------------------
-    Pipeline completed  : ${params.panel}
-    Sequencing run      : ${sequencingRun}
-    Duration            : ${workflow.duration}
-    Failed              : ${workflow.failed}
-    WorkDir             : ${workflow.workDir}
-    Exit status         : ${workflow.exitStatus}
-    """.stripIndent()
+        def body = """\
+        Pipeline execution summary
+        ---------------------------
+        Pipeline completed  : ${params.panel}
+        Sequencing run      : ${sequencingRun}
+        Duration            : ${workflow.duration}
+        Failed              : ${workflow.failed}
+        WorkDir             : ${workflow.workDir}
+        Exit status         : ${workflow.exitStatus}
+        """.stripIndent()
 
-    // Send the email using the built-in sendMail function
-    sendMail(to: 'Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk', subject: 'Pipeline Update', body: body)
-
+        // Send the email using the built-in sendMail function
+        sendMail(to: 'Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk', subject: 'Pipeline Update', body: body)
+    }
 }

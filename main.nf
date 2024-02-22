@@ -482,46 +482,47 @@ workflow {
 }
 
 workflow.onComplete {
-    // Custom message to be sent when the workflow completes
-    def cramFolder = params.cram ? new File(params.cram).getName() : 'Not provided'
-    def fastqFolder = params.fastq ? new File(params.fastq).getName() : 'Not provided'
+    if (System.getenv("USER") in ["raspau", "mmaj"]) {
+        // Custom message to be sent when the workflow completes
+        def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
+                   params.fastq ? new File(params.fastq).getName().take(6) : 'Not provided'
+
     
-    def body = """\
-    Pipeline execution summary
-    ---------------------------
-    Pipeline completed  : ${params.panel}
-    Cram folder         : ${cramFolder}
-    Fastq folder        : ${fastqFolder}
-    Completed at        : ${workflow.complete}
-    Duration            : ${workflow.duration}
-    Success             : ${workflow.success}
-    WorkDir             : ${workflow.workDir}
-    OutputDir           : ${params.outdir ?: 'Not specified'}
-    Exit status         : ${workflow.exitStatus}
-    """.stripIndent()
+        def body = """\
+        Pipeline execution summary
+        ---------------------------
+        Pipeline completed  : ${params.panel}
+        Sequencing run      : ${sequencingRun}
+        Completed at        : ${workflow.complete}
+        Duration            : ${workflow.duration}
+        Success             : ${workflow.success}
+        WorkDir             : ${workflow.workDir}
+        OutputDir           : ${params.outdir ?: 'Not specified'}
+        Exit status         : ${workflow.exitStatus}
+        """.stripIndent()
 
-    // Send the email using the built-in sendMail function
-    sendMail(to: 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk', subject: 'Pipeline Update', body: body)
+        // Send the email using the built-in sendMail function
+        sendMail(to: 'Rasmus.Hojrup.Pausgaard@rsyd.dk', subject: 'Pipeline Update', body: body)
 
-    // Check if --keepwork was specified
-    if (!params.keepwork) {
-        // If --keepwork was not specified, delete the work directory
-        println("Deleting work directory: ${workflow.workDir}")
-        "rm -rf ${workflow.workDir}".execute()
+        // Check if --keepwork was specified
+        if (!params.keepwork) {
+            // If --keepwork was not specified, delete the work directory
+            println("Deleting work directory: ${workflow.workDir}")
+            "rm -rf ${workflow.workDir}".execute()
+        }
     }
 }
 
 workflow.onError {
     // Custom message to be sent when the workflow completes
-    def cramFolder = params.cram ? new File(params.cram).getName() : 'Not provided'
-    def fastqFolder = params.fastq ? new File(params.fastq).getName() : 'Not provided'
+    def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
+                   params.fastq ? new File(params.fastq).getName().take(6) : 'Not provided'
 
     def body = """\
     Pipeline execution summary
     ---------------------------
     Pipeline completed  : ${params.panel}
-    Cram folder         : ${cramFolder}
-    Fastq folder        : ${fastqFolder}
+    Sequencing run      : ${sequencingRun}
     Duration            : ${workflow.duration}
     Failed              : ${workflow.failed}
     WorkDir             : ${workflow.workDir}

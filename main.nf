@@ -34,7 +34,7 @@ params.server                   = "lnx01"
 params.genome                   = "hg38"
 params.outdir                   = "${launchDir.baseName}.Results"
 params.rundir                   = "${launchDir.baseName}"
-params.intervals_list           ="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
+//params.intervals_list           ="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
 
 
 
@@ -149,6 +149,12 @@ if (params.cram && params.fastq) exit 0, FastqCRAM_error()
 
 
 switch (params.server) {
+    case 'lnx02':
+       // modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules";
+        //subworkflow_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows";
+        dataArchive="/lnx01_data2/shared/dataArchive";
+    break;
+
     case 'lnx01':
         modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules";
         subworkflow_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows";
@@ -186,6 +192,21 @@ switch (params.panel) {
         reads_pattern_fastq="*{GV1,GV2,GV3}*R{1,2}*{fq,fastq}.gz";
         panelID="GV3"
     break;
+
+    case "GV_TEST":
+        reads_pattern_cram="*.cram";
+        reads_pattern_crai="*.crai";
+        reads_pattern_fastq="*R{1,2}*{fq,fastq}.gz";
+        panelID="GV_TEST"
+    break;
+
+    case "MUC1":
+        reads_pattern_cram="*{MV1}*.cram";
+        reads_pattern_crai="*{MV1}*.crai";
+        reads_pattern_fastq="*{MV1}*R{1,2}*{fq,fastq}.gz";
+        panelID="MUC1"
+    break;
+
 
     case "WES_2":
         reads_pattern_cram="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.cram";
@@ -279,7 +300,7 @@ if (params.samplesheet && params.fastq || params.fastqInput) {
 
 
 
-if (params.cram && !params.panel && !params.samplesheet) {
+if (params.cram && !params.panel) {
 
     cramfiles="${params.cram}/${reads_pattern_cram}"
     craifiles="${params.cram}/${reads_pattern_crai}"
@@ -288,15 +309,15 @@ if (params.cram && !params.panel && !params.samplesheet) {
     .fromPath(cramfiles)
     .map { tuple(it.baseName.tokenize('_').get(0),it) }
     .set { sampleID_cram }
-sampleID_cram.view()
+
     Channel
     .fromPath(craifiles)
     .map { tuple(it.baseName.tokenize('_').get(0),it) }
     .set {sampleID_crai }
 }
 
-if (params.cram && (params.panel || params.samplesheet)) {
-
+//if (params.cram && (params.panel || params.samplesheet)) {
+    if (params.cram && params.panel) {
     cramfiles="${params.cram}/${reads_pattern_cram}"
     craifiles="${params.cram}/${reads_pattern_crai}"
 
@@ -339,7 +360,7 @@ if (params.samplesheet) {
         .map { row -> tuple(row[1], row[0],row[2],row[3])}
         .set { full_samplesheet }
     //above: NPN, caseID, relation, samplestatus
-full_samplesheet.view()
+
     channel.fromPath(params.samplesheet)
         .splitCsv(sep:'\t')
         .map { row -> row[0]}
@@ -385,10 +406,12 @@ if (params.samplesheet && !params.fastqInput && !params.fastq) {
 //////// END: Combine input and samplesheet //////////
 
 ///// Haplotypecaller splitintervals channel: /////
+/*
 channel
     .fromPath(params.intervals_list)
     .map { it -> tuple(it.baseName,it)}
     .set { haplotypecallerIntervalList }
+*/
 ////////////////////////////////////////////////////
 
 include { 

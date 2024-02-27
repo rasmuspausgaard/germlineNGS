@@ -509,7 +509,7 @@ workflow {
 }
 
 workflow.onComplete {
-    // only send email if --nomail is not specificiet and duration is longer than 20 minutes /1200000 miliseconds
+    // only send email if --nomail is not specified and duration is longer than 20 minutes /1200000 milliseconds
     if (!params.nomail && workflow.duration > 1200000) {
         if (System.getenv("USER") in ["raspau", "mmaj"]) {
             def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
@@ -527,14 +527,16 @@ workflow.onComplete {
 
             def workDirMessage = params.keepwork ? "WorkDir             : ${workflow.workDir}" : "WorkDir             : Deleted"
 
+            // Format the completion date
+            def completeDate = workflow.complete ? new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(workflow.complete) : "Not available"
+
             def body = """\
             Pipeline execution summary
             ---------------------------
             Pipeline completed  : ${params.panel}
             Sequencing run      : ${sequencingRun}
-            Started at          : ${date2}
             Duration            : ${workflow.duration}
-            Completed at        : ${workflow.complete}
+            Completed at        : ${completeDate}
             Success             : ${workflow.success}
             ${workDirMessage}
             OutputDir           : ${params.outdir ?: 'Not specified'}

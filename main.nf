@@ -98,7 +98,7 @@ def helpMessage() {
                             Default: not set - removes the Work folder
 
       --nomail          Does not send a mail-message when completing a script
-                            Default: not set - sends mail message if the user is mmaj or raspau and only if the script has been running longer than an hour.
+                            Default: not set - sends mail message if the user is mmaj or raspau and only if the script has been running longer than 20 minutes.
 
     Panel analysis:
 
@@ -509,13 +509,13 @@ workflow {
 }
 
 workflow.onComplete {
-    // Kun send email hvis --nomail ikke blev specificeret OG duration er over en time
-    if (!params.nomail && workflow.duration > 3600000) {
+    // only send email if --nomail is not specificiet and duration is longer than 20 minutes /1200000 miliseconds
+    if (!params.nomail && workflow.duration > 1200000) {
         if (System.getenv("USER") in ["raspau", "mmaj"]) {
             def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
                                params.fastq ? new File(params.fastq).getName().take(6) : 'Not provided'
 
-            // Tjek for OBS prøver hvis det er AV1 panel
+            // checks if there is OBS samples in the cram folder
             def obsSampleMessage = ""
             if (params.panel == "AV1" && params.cram) {
                 def cramDir = new File(params.cram)
@@ -525,7 +525,6 @@ workflow.onComplete {
                 }
             }
 
-            // Tilpas WorkDir beskeden baseret på om --keepwork er specificeret
             def workDirMessage = params.keepwork ? "WorkDir             : ${workflow.workDir}" : "WorkDir             : Deleted"
 
             def body = """\
@@ -544,7 +543,7 @@ workflow.onComplete {
             """.stripIndent()
 
             // Send email using the built-in sendMail function
-            sendMail(to: 'Rasmus.Hojrup.Pausgaard@rsyd.dk', subject: 'Pipeline Update', body: body)
+            sendMail(to: 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk', subject: 'Pipeline Update', body: body)
         }
     }
 

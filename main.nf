@@ -13,7 +13,7 @@ params.panel                    =null
 params.samplesheet              =null
 params.preprocessOnly           =null
 params.keepwork                 =null
-parmas.nomail                   =null
+params.nomail                   =null
 
 params.hg38v1                   =null
 params.hg38v2                   =null

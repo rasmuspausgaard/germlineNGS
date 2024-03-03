@@ -527,16 +527,14 @@ workflow.onComplete {
 
             def workDirMessage = params.keepwork ? "WorkDir             : ${workflow.workDir}" : "WorkDir             : Deleted"
 
-            // Format the completion date
-            def completeDate = workflow.complete ? new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(workflow.complete) : "Not available"
-
+            
             def body = """\
             Pipeline execution summary
             ---------------------------
             Pipeline completed  : ${params.panel}
             Sequencing run      : ${sequencingRun}
             Duration            : ${workflow.duration}
-            Completed at        : ${completeDate}
+            Completed at        : ${workflow.complete}
             Success             : ${workflow.success}
             ${workDirMessage}
             OutputDir           : ${params.outdir ?: 'Not specified'}

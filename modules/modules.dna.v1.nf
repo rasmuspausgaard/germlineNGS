@@ -3,6 +3,7 @@ nextflow.enable.dsl = 2
 
 
 date=new Date().format( 'yyMMdd' )
+date2=new Date().format( 'yyMMdd HH:mm:ss' )
 user="$USER"
 runID="${date}.${user}"
 
@@ -17,6 +18,8 @@ switch (params.gatk) {
     case 'new':
     gatk_image="gatk4400.sif";
     break;
+    case 'v45':
+    gatk_image="gatk4500.sif";
     default:
     gatk_image="gatk419.sif";
     break;
@@ -24,24 +27,40 @@ switch (params.gatk) {
 
 
 switch (params.server) {
+    case 'lnx02':
+        s_bind="/data/:/data/,/lnx01_data2/:/lnx01_data2/,/fast/:/fast/,/lnx01_data3/:/lnx01_data3/";
+        simgpath="/data/shared/programmer/simg";
+        tmpDIR="/fast/TMP/TMP.${user}/";
+        gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
+        multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
+        tank_storage="/home/mmaj/tank.kga/data/data.storage.archive/";
+        refFilesDir="/fast/shared/genomes";
+//        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/hg38v3/hg38v3_scatter20_BWI/*.interval_list";
+        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/hg38v3/hg38v3_scatter10_IntervalSubdiv/*.interval_list";
+
+        //modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules/";
+    break;
     case 'lnx01':
         s_bind="/data/:/data/,/lnx01_data2/:/lnx01_data2/";
         simgpath="/data/shared/programmer/simg";
-        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
         tmpDIR="/data/TMP/TMP.${user}/";
         gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
         multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
         tank_storage="/home/mmaj/tank.kga2/data/data.storage.archive/";
         modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules/";
+        refFilesDir="/data/shared/genomes";
+        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/hg38v3/hg38v3_scatter10_IntervalSubdiv/*.interval_list";
+        //params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
+
     break;
     case 'kga01':
         simgpath="/data/shared/programmer/simg";
         s_bind="/data/:/data/";
         tmpDIR="/data/TMP/TMP.${user}/";
-        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
         gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
         tank_storage="/home/mmaj/tank.kga/data/data.storage.archive/";
         modules_dir="/home/mmaj/LNX01_mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules/";
+        refFilesDir="/data/shared/genomes";
     break;
 }
 
@@ -62,9 +81,9 @@ switch (params.genome) {
         smncaller_assembly="38"
         // Genome assembly files:
         if (params.hg38v1) {
-        genome_fasta = "/data/shared/genomes/hg38/GRCh38.primary.fa"
-        genome_fasta_fai = "/data/shared/genomes/hg38/GRCh38.primary.fa.fai"
-        genome_fasta_dict = "/data/shared/genomes/hg38/GRCh38.primary.dict"
+        genome_fasta = "${refFilesDir}/hg38/GRCh38.primary.fa"
+        genome_fasta_fai = "${refFilesDir}/hg38/GRCh38.primary.fa.fai"
+        genome_fasta_dict = "${refFilesDir}/hg38/GRCh38.primary.dict"
         genome_version="V1"
         cnvkit_germline_reference_PON="/data/shared/genomes/hg38/inhouse_DBs/hg38v1_primary/cnvkit/wgs_germline_PON/jgmr_45samples.reference.cnn"
         cnvkit_inhouse_cnn_dir="/data/shared/genomes/hg38/inhouse_DBs/hg38v1_primary/cnvkit/wgs_persample_cnn/"
@@ -72,38 +91,32 @@ switch (params.genome) {
         }
         
         if (params.hg38v2){
-        genome_fasta = "/data/shared/genomes/hg38/ucsc.hg38.NGS.analysisSet.fa"
-        genome_fasta_fai = "/data/shared/genomes/hg38/ucsc.hg38.NGS.analysisSet.fa.fai"
-        genome_fasta_dict = "/data/shared/genomes/hg38/ucsc.hg38.NGS.analysisSet.dict"
+        genome_fasta = "${refFilesDir}/hg38/ucsc.hg38.NGS.analysisSet.fa"
+        genome_fasta_fai = "${refFilesDir}/hg38/ucsc.hg38.NGS.analysisSet.fa.fai"
+        genome_fasta_dict = "${refFilesDir}/hg38/ucsc.hg38.NGS.analysisSet.dict"
         genome_version="V2"
         }
 
         // Current hg38 version (v3): NGC with masks and decoys.
         if (!params.hg38v2 && !params.hg38v1){
-        genome_fasta = "/data/shared/genomes/hg38/GRCh38_masked_v2_decoy_exclude.fa"
-        genome_fasta_fai = "/data/shared/genomes/hg38/GRCh38_masked_v2_decoy_exclude.fa.fai"
-        genome_fasta_dict = "/data/shared/genomes/hg38/GRCh38_masked_v2_decoy_exclude.dict"
+        genome_fasta = "${refFilesDir}/hg38/GRCh38_masked_v2_decoy_exclude.fa"
+        genome_fasta_fai = "${refFilesDir}/hg38/GRCh38_masked_v2_decoy_exclude.fa.fai"
+        genome_fasta_dict = "${refFilesDir}/hg38/GRCh38_masked_v2_decoy_exclude.dict"
         genome_version="V3"
         cnvkit_germline_reference_PON="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/cnvkit/hg38v3_109samples.cnvkit.reference.cnn"
         cnvkit_inhouse_cnn_dir="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/cnvkit/wgs_persample_cnn/"
-        inhouse_SV="/data/shared//genomes/hg38/inhouse_DBs/hg38v3_primary/"
+        inhouse_SV="/data/shared/genomes/hg38/inhouse_DBs/hg38v3/"
         }
 
         // Gene and transcript annotation files:
 
-        gencode_gtf = "/data/shared/genomes/hg38/gene.annotations/gencode.v36.annotation.gtf"
-        gencode_gff3 = "/data/shared/genomes/hg38/gene.annotations/gencode.v36.annotation.gff3"
+        gencode_gtf = "${refFilesDir}/hg38/gene.annotations/gencode.v36.annotation.gtf"
+        gencode_gff3 = "${refFilesDir}/hg38/gene.annotations/gencode.v36.annotation.gff3"
      
         //Program  files:
-        msisensor_list="/data/shared/genomes/hg38/program_DBs/msisensor/hg38_msisensor_scan.txt"
+        msisensor_list="${refFilesDir}/hg38/program_DBs/msisensor/hg38_msisensor_scan.txt"
         
-        accucopy_config="/data/shared/genomes/hg38/accucopy/accucopy.docker.nextflow.conf"
-        cnvradar_anno="/data/shared/genomes/hg38/program_DBs/cnvradar/All_20180418.vcf.gz"
-        cnvradar_anno_idx="/data/shared/genomes/hg38/program_DBs/cnvradar/All_20180418.vcf.gz.tbi"
-        cnvradar_ROI="/data/shared/genomes/hg38/interval.files/210129.hg38.gencode36.codingexons.SM.bed" 
-
-        cnvradar_roisum_dir="/data/shared/genomes/hg38/program_DBs/cnvradar/inhouse_roi_summaries/"
-        
+      
         //Structural variants
         delly_exclude="/data/shared/genomes/hg38/program_DBs/delly/human.hg38.excl.tsv"
         
@@ -156,7 +169,7 @@ switch (params.genome) {
         GV3_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/gv3.hg38.ROI.v2.bed"
         NV1_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/nv1.hg38.ROI.bed"
         WES_ROI="/data/shared/genomes/hg38/interval.files/exome.ROIs/211130.hg38.refseq.gencode.fullexons.50bp.SM.bed"
-
+        MV1_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/muc1.hg38.coordinates.bed"
         break;
 }
 
@@ -174,6 +187,16 @@ switch (params.panel) {
     case "GV3":
         ROI="${GV3_ROI}";
         panelID="GV3"
+    break;
+
+    case "GV_TEST":
+        ROI="${GV3_ROI}";
+        panelID="GV_TEST"
+    break;
+
+    case "MUC1":
+        ROI="${MV1_ROI}";
+        panelID="MUC1_MV1"
     break;
 
     case "WES_2":
@@ -227,6 +250,7 @@ GATK ver.    : $gatk_image
 Server       : $params.server
 RunID        : $runID
 PanelID      : $panelID
+Script start : $date2
 """
 
 
@@ -542,7 +566,7 @@ process multiQC {
 //////////////////////////// VARIANT CALLING MODULES //////////////////////////////////
 process haplotypecaller{
         errorStrategy 'ignore'
-        maxForks 10
+        maxForks 30
         cpus 4
         tag "$sampleID"
         publishDir "${outputDir}/Variants/per_sample/", mode: 'copy', pattern: "*.HC.*"
@@ -567,13 +591,13 @@ process haplotypecaller{
 
         script:
         """
-        ${gatk_exec} --java-options "-Xmx4G -XX:+UseParallelGC -XX:ParallelGCThreads=30" HaplotypeCaller \
+        ${gatk_exec} --java-options "-Xmx4G -XX:+UseParallelGC -XX:ParallelGCThreads=4" HaplotypeCaller \
         -I ${aln} \
         -R ${genome_fasta} \
         -ERC GVCF \
         -L ${ROI} \
         --smith-waterman FASTEST_AVAILABLE \
-        --native-pair-hmm-threads 30 \
+        --native-pair-hmm-threads 4 \
         -pairHMM FASTEST_AVAILABLE \
         --dont-use-soft-clipped-bases \
         -O ${sampleID}.${params.genome}.${genome_version}.g.vcf \
@@ -657,7 +681,7 @@ process jointgenotyping {
 
 process haplotypecallerSplitIntervals {
     errorStrategy 'ignore'
-    maxForks 9
+    maxForks 60
 
     input:
     tuple val(sampleID), path(bam), path(bai), val(sub_intID), path(sub_interval) //from HC_scatter_input_bam.combine(interval_list1)
@@ -667,13 +691,13 @@ process haplotypecallerSplitIntervals {
 
     script:
     """
-    ${gatk_exec} --java-options "-Xmx4G -XX:+UseParallelGC -XX:ParallelGCThreads=30" HaplotypeCaller \
+    ${gatk_exec} --java-options "-Xmx4G -XX:+UseParallelGC -XX:ParallelGCThreads=4" HaplotypeCaller \
     -I ${bam} \
     -R ${genome_fasta} \
     -ERC GVCF \
     -L ${sub_interval} \
     --smith-waterman FASTEST_AVAILABLE \
-    --native-pair-hmm-threads 30 \
+    --native-pair-hmm-threads 4 \
     -pairHMM FASTEST_AVAILABLE \
     --dont-use-soft-clipped-bases \
     -O ${sampleID}.${sub_intID}.g.vcf
@@ -773,7 +797,7 @@ process manta {
     publishDir "${outputDir}/structuralVariants/manta/allOutput/", mode: 'copy'
 
     cpus 10
-    maxForks 3
+    maxForks 6
 
     input:
     tuple val(sampleID), path(aln), path(index)
@@ -846,8 +870,8 @@ process lumpy {
     publishDir "${inhouse_SV}/lumpy/raw_calls/", mode: 'copy', pattern: "*.Lumpy_altmode_step1.vcf"
     publishDir "${outputDir}/structuralVariants/lumpy/", mode: 'copy'
     
-    cpus 1
-    maxForks 3
+    cpus 10
+    maxForks 6
 
     input:
 
@@ -887,8 +911,8 @@ process tiddit361 {
     publishDir "${inhouse_SV}/tiddit/RAW_calls/", mode: 'copy', pattern: "*.tiddit.vcf"
     publishDir "${outputDir}/structuralVariants/tiddit/", mode: 'copy'
     
-    cpus 10
-    maxForks 3
+    cpus 2
+    maxForks 15
 
     input:
     tuple val(sampleID), path(aln), path(index) 
@@ -914,8 +938,11 @@ process cnvkit {
     errorStrategy 'ignore'
     tag "$sampleID"
 
+    cpus 10
+    maxForks 6
+
     publishDir "${outputDir}/structuralVariants/cnvkit/", mode: 'copy'
-    publishDir "${cnvkit_inhouse_cnn_dir}", mode: 'copy', pattern: '*.targetcoverage.cnn'
+    publishDir "${inhouse_SV}/CNVkit/CNNfiles/", mode: 'copy', pattern: '*.cnn'
 
     input:
     tuple val(sampleID), path(aln), path(index)
@@ -936,7 +963,7 @@ process cnvkit {
     singularity run -B ${s_bind} ${simgpath}/cnvkit.sif cnvkit.py batch \
     ${aln} \
     -m wgs \
-    -p 20 \
+    -p ${task.cpus} \
     -r ${cnvkit_germline_reference_PON} \
     --scatter --diagram \
     -d ${sampleID}.cnvkit/
@@ -947,7 +974,7 @@ process cnvkit {
 process cnvkitExportFiles {
     errorStrategy 'ignore'
     tag "$sampleID"
-    publishDir "${inhouse_SV}/cnvkit/raw_calls/", mode: 'copy', pattern: '*.cnvkit.vcf'
+    publishDir "${inhouse_SV}/CNVkit/raw_calls/", mode: 'copy', pattern: '*.cnvkit.vcf'
     publishDir "${outputDir}/structuralVariants/cnvkit/", mode: 'copy'
 
     input:
@@ -977,7 +1004,11 @@ process merge4callerSVDB {
     errorStrategy 'ignore'
 
     //publishDir "${outputDir}/all_callers_merged/", mode: 'copy'
-    publishDir "${outputDir}/structuralVariants/SVDB_merged/", mode: 'copy', pattern: "*.4caller.SVDB.merged.*"
+   // publishDir "${outputDir}/structuralVariants/SVDB_merged/", mode: 'copy', pattern: "*.4caller.SVDB.merged.*"
+    publishDir "${outputDir}/structuralVariants/SVDB_merged/60pctOverlap/", mode: 'copy', pattern: "*.60pctOverlap.*"
+    publishDir "${outputDir}/structuralVariants/SVDB_merged/80pctOverlap/", mode: 'copy', pattern: "*.80pctOverlap.*"
+    publishDir "${outputDir}/structuralVariants/SVDB_merged/100pctOverlap/", mode: 'copy', pattern: "*.100pctOverlap.*"
+
     //publishDir "${outputDir}/", mode: 'copy', pattern: '*.vcf'
     //container 'kfdrc/manta:1.6.0'
     maxForks 12
@@ -989,14 +1020,14 @@ process merge4callerSVDB {
     script:
     """
     singularity exec  \
-    --bind /data/:/data/,/lnx01_data2/:/lnx01_data2/ /data/shared/programmer/FindSV/FindSV.simg svdb \
+    --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
     --merge \
     --overlap 0.6 \
     --vcf ${manta_vcf}:MANTA ${lumpy_vcf}:LUMPY ${cnvkit_vcf}:CNVKIT ${tiddit_vcf}:TIDDIT \
     --priority LUMPY,MANTA,CNVKIT,TIDDIT > ${sampleID}.4caller.SVDB.merged.60pctOverlap.vcf
 
     singularity exec  \
-    --bind /data/:/data/,/lnx01_data2/:/lnx01_data2/ /data/shared/programmer/FindSV/FindSV.simg svdb \
+    --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
     --merge \
     --overlap 0.8 \
     --vcf ${manta_vcf}:MANTA ${lumpy_vcf}:LUMPY ${cnvkit_vcf}:CNVKIT ${tiddit_vcf}:TIDDIT \
@@ -1004,7 +1035,7 @@ process merge4callerSVDB {
 
 
     singularity exec  \
-    --bind /data/:/data/,/lnx01_data2/:/lnx01_data2/ /data/shared/programmer/FindSV/FindSV.simg svdb \
+    --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
     --merge \
     --overlap 1.0 \
     --vcf ${manta_vcf}:MANTA ${lumpy_vcf}:LUMPY ${cnvkit_vcf}:CNVKIT ${tiddit_vcf}:TIDDIT \
@@ -1047,7 +1078,7 @@ process stripy {
     """
     mkdir ${sampleID}.stripy/ 
     sleep 5
-    python3.8 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
     --genome ${params.genome} \
     --reference ${genome_fasta} \
     --locus AFF2,AR,ARX_1,ARX_2,ATN1,ATXN1,ATXN10,ATXN2,ATXN3,ATXN7,ATXN8OS,BEAN1,C9ORF72,CACNA1A,CBL,CNBP,COMP,DAB1,DIP2B,DMD,DMPK,FGF14,FMR1,FOXL2,FXN,GIPC1,GLS,HOXA13_1,HOXA13_2,HOXA13_3,HOXD13,HTT,JPH3,LRP12,MARCHF6,NIPA1,NOP56,NOTCH2NLC,NUTM2B-AS1,PABPN1,PHOX2B,PPP2R2B,PRDM12,RAPGEF2,RFC1,RILPL1,RUNX2,SAMD12,SOX3,STARD7,TBP,TBX1,TCF4,TNRC6A,XYLT1,YEATS2,ZIC2,ZIC3 \
@@ -1085,7 +1116,7 @@ process smnCopyNumberCaller {
     
     script:
     """
-    python /data/shared/programmer/SMNCopyNumberCaller-1.1.2/smn_caller.py \
+    python3 /data/shared/programmer/SMNCopyNumberCaller-1.1.2/smn_caller.py \
     --manifest ${manifest} \
     --genome ${smncaller_assembly} \
     --prefix ${params.rundir} \
@@ -1247,7 +1278,7 @@ workflow SUB_VARIANTCALL_WGS {
     .collectFile(name: "collectfileTEST_scatter.txt", newLine: false)
     .map {it.text.trim()}.set {gvcfsamples_for_GATK_scatter}
 
-    jointgenoScatter(gvcfsamples_for_GATK_scatter)
+    //jointgenoScatter(gvcfsamples_for_GATK_scatter)
 }
 
 workflow SUB_CNV_SV {

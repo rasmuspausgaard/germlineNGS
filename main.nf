@@ -481,36 +481,53 @@ workflow {
 
 }
 
+
 workflow.onComplete {
-    if (System.getenv("USER") in ["raspau", "mmaj"]) {
-        // Custom message to be sent when the workflow completes
-        def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
-                   params.fastq ? new File(params.fastq).getName().take(6) : 'Not provided'
+    // only send email if --nomail is not specified and duration is longer than 20 minutes / 1200000 milliseconds
+    if (!params.nomail && workflow.duration > 1200000) {
+        if (System.getenv("USER") in ["raspau", "mmaj"]) {
+            def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
+                               params.fastq ? new File(params.fastq).getName().take(6) : 'Not provided'
 
-    
-        def body = """\
-        Pipeline execution summary
-        ---------------------------
-        Pipeline completed  : ${params.panel}
-        Sequencing run      : ${sequencingRun}
-        Completed at        : ${workflow.complete}
-        Duration            : ${workflow.duration}
-        Success             : ${workflow.success}
-        WorkDir             : ${workflow.workDir}
-        OutputDir           : ${params.outdir ?: 'Not specified'}
-        Exit status         : ${workflow.exitStatus}
-        """.stripIndent()
+            // Checks if there are OBS samples in the cram folder
+            def obsSampleMessage = ""
+            if (params.panel == "AV1" && params.cram) {
+                def cramDir = new File(params.cram)
+                def obsSamples = cramDir.listFiles().findAll { it.name.contains("OBS") }
+                if (obsSamples.size() > 0) {
+                    obsSampleMessage = "\nTHERE IS AN OBS SAMPLE IN THIS RUN"
+                }
+            }
 
-        // Send the email using the built-in sendMail function
-        sendMail(to: 'Rasmus.Hojrup.Pausgaard@rsyd.dk', subject: 'Pipeline Update', body: body)
+            def workDirMessage = params.keepwork ? "WorkDir             : ${workflow.workDir}" : "WorkDir             : Deleted"
 
-        // Check if --keepwork was specified
-        if (!params.keepwork) {
-            // If --keepwork was not specified, delete the work directory
-            println("Deleting work directory: ${workflow.workDir}")
-            "rm -rf ${workflow.workDir}".execute()
+            // Correctly set the outputDir
+            def outputDir = "${launchDir}/Results"
+
+            def body = """\
+            Pipeline execution summary
+            ---------------------------
+            Pipeline completed  : ${params.panel}
+            Sequencing run      : ${sequencingRun}${obsSampleMessage}
+            Completed at        : ${workflow.complete}
+            Duration            : ${workflow.duration}
+            Success             : ${workflow.success}
+            ${workDirMessage}
+            OutputDir           : ${outputDir}
+            Exit status         : ${workflow.exitStatus}
+            """.stripIndent()
+
+            // Send the email using the built-in sendMail function
+            sendMail(to: 'Rasmus.Hojrup.Pausgaard@rsyd.dk', subject: 'Pipeline Update', body: body)
+
+            // Check if --keepwork was specified
+            if (!params.keepwork) {
+                // If --keepwork was not specified, delete the work directory
+                println("Deleting work directory: ${workflow.workDir}")
+                "rm -rf ${workflow.workDir}".execute()
+            }
         }
-    }
+    }    
 }
 
 workflow.onError {

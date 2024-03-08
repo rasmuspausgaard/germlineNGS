@@ -511,7 +511,7 @@ workflow {
 
 workflow.onComplete {
     // only send email if --nomail is not specified, the user is mmaj or raspau and duration is longer than 20 minutes / 1200000 milliseconds
-    if (!params.nomail && workflow.duration > 1200000 && workflow.success) {
+    if (!params.nomail && workflow.success) {
         if (System.getenv("USER") in ["raspau", "mmaj"]) {
             def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
                                params.fastq ? new File(params.fastq).getName().take(6) : 'Not provided'

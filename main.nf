@@ -208,7 +208,7 @@ switch (params.panel) {
     case "MUC1":
         reads_pattern_cram="*{MV1}*.cram";
         reads_pattern_crai="*{MV1}*.crai";
-        reads_pattern_fastq="*{-,.,_}*{MV1}*{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_fastq="*{MV1}*R{1,2}*{fq,fastq}.gz";
         panelID="MUC1"
     break;
 
@@ -253,7 +253,7 @@ if (params.fastq) {
 
 if (!params.fastq && params.fastqInput) {
 
-    params.reads="${dataArchive}/{lnx01,kga01_novaRuns,tank_kga_external_archive}/**/${reads_pattern_fastq}"
+    params.reads="${dataArchive}/{lnx01,lnx02,kga01_novaRuns,tank_kga_external_archive}/**/${reads_pattern_fastq}"
 }
 
 
@@ -263,20 +263,35 @@ if (!params.fastq && params.fastqInput) {
 
 if (!params.samplesheet && params.fastq) {
 // If NOT samplesheet (std panel run), set sampleID == NPN_PANEL_SUBPANEL
+
+
+    params.reads="${params.fastq}/*{.,_,-}{R1,R2}*.gz"
+
+ Channel
+    .fromFilePairs(params.reads, checkIfExists: true)
+    .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
+//    .map { it -> [it[0]+"_"+params.panel+"_"+params.genome, file(it[1][0]),file(it[1][1])] }
+    .map { it -> [it[0], file(it[1][0]),file(it[1][1])] }
+    .set { read_pairs_ch }
+
+/*
+
     Channel
     .fromPath(params.reads, checkIfExists: true)
-    .filter {it =~/_R1_/}
+    .filter {it =~/R1/}
     .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
     .set { sampleid_R1}
 
     Channel
     .fromPath(params.reads, checkIfExists: true)
-    .filter {it =~/_R2_/}
+    .filter {it =~/R2/}
     .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
     .set { sampleid_R2 }
 
     sampleid_R1.join(sampleid_R2)
     .set { read_pairs_ch }
+read_pairs_ch.view()
+*/
 
 }
 
@@ -341,8 +356,8 @@ if (params.cram && !params.panel) {
 // If only samplesheet is provided, use CRAM from archive as input (default setup)!
 
 if (params.samplesheet && !params.cram && !params.fastqInput && !params.fastq) {
-    cramfiles="${dataArchive}/{lnx01,tank_kga_external_archive}/**/${reads_pattern_cram}"
-    craifiles="${dataArchive}/{lnx01,tank_kga_external_archive}/**/${reads_pattern_crai}"
+    cramfiles="${dataArchive}/{lnx01,lnx02,tank_kga_external_archive}/**/${reads_pattern_cram}"
+    craifiles="${dataArchive}/{lnx01,lnx02,tank_kga_external_archive}/**/${reads_pattern_crai}"
 
     Channel
     .fromPath(cramfiles)
@@ -394,7 +409,7 @@ if (!params.samplesheet && params.cram) {
     sampleID_cram.join(sampleID_crai)
     .set { meta_aln_index }
 }
-meta_aln_index.view()
+
 if (params.samplesheet && !params.cram && (params.fastqInput||params.fastq)) {
     full_samplesheet.join(read_pairs_ch)
     .map {tuple (it[0]+"_"+it[1]+"_"+it[2],it[4],it[5])}

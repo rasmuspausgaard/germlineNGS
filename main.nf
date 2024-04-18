@@ -14,7 +14,6 @@ params.samplesheet              =null
 params.preprocessOnly           =null
 params.keepwork                 =null
 params.nomail                   =null
-
 params.hg38v1                   =null
 params.hg38v2                   =null
 params.cram                     =null
@@ -22,6 +21,7 @@ params.fastq                    =null
 params.archiveStorage           =null
 params.lnx01_storage            =null
 params.skipSpliceAI             =null
+params.skipJointGenotyping      =null
 params.fastqInput               =null
 params.skipSV                   =null
 params.skipVariants             =null
@@ -30,7 +30,8 @@ params.skipSTR                  =null
 params.skipSMN                  =null
 //Preset parameters:
 params.gatk                     =null
-
+params.copyCram                 =null
+params.single                   =null
 params.server                   = "lnx01"
 params.genome                   = "hg38"
 params.outdir                   = "${launchDir.baseName}.Results"
@@ -234,9 +235,9 @@ switch (params.panel) {
     break;
 
     default: 
-        reads_pattern_cram="*{-,.,_}{WG3,WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.cram";
-        reads_pattern_crai="*{-,.,_}{WG3,WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{WG3,WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_cram="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.cram";
+        reads_pattern_crai="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.crai";
+        reads_pattern_fastq="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*R{1,2}*{fq,fastq}.gz";
         panelID="WGS"
     break;
 }
@@ -384,7 +385,6 @@ if (params.samplesheet) {
 ////////////////////////////////////////////////////
 
 
-
 if (!params.samplesheet && params.fastq) {
     read_pairs_ch
     .set { fq_read_input }
@@ -394,7 +394,7 @@ if (!params.samplesheet && params.cram) {
     sampleID_cram.join(sampleID_crai)
     .set { meta_aln_index }
 }
-
+meta_aln_index.view()
 if (params.samplesheet && !params.cram && (params.fastqInput||params.fastq)) {
     full_samplesheet.join(read_pairs_ch)
     .map {tuple (it[0]+"_"+it[1]+"_"+it[2],it[4],it[5])}
@@ -421,6 +421,7 @@ channel
 include { 
          // Symlinks:
          inputFiles_symlinks_cram;
+         inputFiles_cramCopy;
          // Preprocess tools:
          //QC tools
          samtools;
@@ -435,8 +436,6 @@ include {
          SUB_CNV_SV;
          SUB_STR;
          SUB_SMN } from "./modules/modules.dna.v1.nf" 
-
-
 
 
 workflow QC {
@@ -454,11 +453,11 @@ workflow QC {
 
 workflow {
 
-    if (!params.panel) { 
+    if (!params.panel || params.panel =="WGS_CNV") { 
 
         if (params.fastqInput||params.fastq) {
             SUB_PREPROCESS(fq_read_input)
-            
+
             if (!params.skipVariants) {
                 SUB_VARIANTCALL_WGS(SUB_PREPROCESS.out.finalAln)
             }
@@ -475,24 +474,45 @@ workflow {
         }
 
         if (!params.fastqInput && !params.fastq) {
-            inputFiles_symlinks_cram(meta_aln_index)
 
-            if (!params.skipVariants) {
-                SUB_VARIANTCALL_WGS(meta_aln_index)
+            if (!params.copyCram) {
+                inputFiles_symlinks_cram(meta_aln_index)
+
+                if (!params.skipVariants) {
+                    SUB_VARIANTCALL_WGS(meta_aln_index)
+                }
+                if (!params.skipSV) {
+                    SUB_CNV_SV(meta_aln_index)
+                }
+                if (!params.skipSTR) {
+                    SUB_STR(meta_aln_index)
+                }
+                if (!params.skipSMN) {
+                SUB_SMN(meta_aln_index)
+                }
             }
-            if (!params.skipSV) {
-                SUB_CNV_SV(meta_aln_index)
-            }
-            if (!params.skipSTR) {
-                SUB_STR(meta_aln_index)
-            }
-            if (!params.skipSMN) {
-            SUB_SMN(meta_aln_index)
+
+            if (params.copyCram) {
+                inputFiles_symlinks_cram(meta_aln_index)
+                inputFiles_cramCopy(meta_aln_index)
+            
+                if (!params.skipVariants) {
+                    SUB_VARIANTCALL_WGS(inputFiles_cramCopy.out)
+                }
+                if (!params.skipSV) {
+                    SUB_CNV_SV(inputFiles_cramCopy.out)
+                }
+                if (!params.skipSTR) {
+                    SUB_STR(inputFiles_cramCopy.out)
+                }
+                if (!params.skipSMN) {
+                    SUB_SMN(inputFiles_cramCopy.out)
+                }
             }
         }
     }
 
-    if (params.panel) {
+    if (params.panel && params.panel!="WGS_CNV") {
 
         if (params.fastqInput||params.fastq) {
             SUB_PREPROCESS(fq_read_input)
@@ -503,15 +523,13 @@ workflow {
             SUB_VARIANTCALL(meta_aln_index)
         }
     }
-
-
-
 }
 
 
+
 workflow.onComplete {
-    // only send email if --nomail is not specified, the user is mmaj or raspau and duration is longer than 20 minutes / 1200000 milliseconds
-    if (!params.nomail && workflow.success) {
+    // only send email if --nomail is not specified, the user is mmaj or raspau and duration is longer than 5 minutes / 300000 milliseconds
+    if (!params.nomail && workflow.duration > 300000 && workflow.success) {
         if (System.getenv("USER") in ["raspau", "mmaj"]) {
             def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
                                params.fastq ? new File(params.fastq).getName().take(6) : 'Not provided'
@@ -529,14 +547,13 @@ workflow.onComplete {
             def workDirMessage = params.keepwork ? "WorkDir             : ${workflow.workDir}" : "WorkDir             : Deleted"
 
             // Correctly set the outputDir
-            def outputDir = "${launchDir}/Results"
+            def outputDir = "${launchDir}/${launchDir.baseName}.Results"
 
             def body = """\
             Pipeline execution summary
             ---------------------------
             Pipeline completed  : ${params.panel}
             Sequencing run      : ${sequencingRun}${obsSampleMessage}
-            Completed at        : ${workflow.complete}
             Duration            : ${workflow.duration}
             Success             : ${workflow.success}
             ${workDirMessage}
@@ -546,7 +563,7 @@ workflow.onComplete {
             """.stripIndent()
 
             // Send the email using the built-in sendMail function
-            sendMail(to: 'Rasmus.Hojrup.Pausgaard@rsyd.dk', subject: 'Pipeline Update', body: body)
+            sendMail(to: 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk', subject: 'GermlineNGS pipeline Update', body: body)
 
             // Check if --keepwork was specified
             if (!params.keepwork) {

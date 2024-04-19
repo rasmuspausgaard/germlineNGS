@@ -550,6 +550,17 @@ workflow {
 
 
 workflow.onComplete {
+    // move the output of the germlineNGS WGS_CNV from fast to lnx01
+    if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
+        def currentYear = Calendar.getInstance().get(Calendar.YEAR)
+        def sourceDir = "/fast/data/WGS_weekly_out"
+        def targetDir = "/lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}"
+
+        // Construct the command to move only directories starting with 6 digits
+        def command = "mv ${sourceDir}/[0-9][0-9][0-9][0-9][0-9][0-9]* ${targetDir}/"
+        def process = new ProcessBuilder("/bin/bash", "-c", command).start()}
+    
+
     // only send email if --nomail is not specified, the user is mmaj or raspau and duration is longer than 5 minutes / 300000 milliseconds
     if (!params.nomail && workflow.duration > 300000 && workflow.success) {
         if (System.getenv("USER") in ["raspau", "mmaj"]) {

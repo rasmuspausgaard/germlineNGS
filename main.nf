@@ -1,4 +1,3 @@
-
 #!/usr/bin/env nextflow
 nextflow.enable.dsl = 2
 
@@ -628,4 +627,3 @@ workflow.onError {
     sendMail(to: 'Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk', subject: 'Pipeline Update', body: body)
 
 }
-

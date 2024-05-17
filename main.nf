@@ -556,7 +556,7 @@ workflow.onComplete {
         def targetDir = "/lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}"
 
         // Construct the command to move only directories starting with 6 digits
-        def command = "mv ${sourceDir}/[0-9][0-9][0-9][0-9][0-9][0-9]* ${targetDir}/"
+        def command = "mv /fast/data/WGS_weekly_out/[0-9][0-9][0-9][0-9][0-9][0-9]* /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
         def process = new ProcessBuilder("/bin/bash", "-c", command).start()}
     
 

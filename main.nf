@@ -597,6 +597,9 @@ workflow.onComplete {
     if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
         "mv /fast/data/WGS_weekly_out/[0-9][0-9][0-9][0-9][0-9][0-9]* /lnx01_data2/shared/patients/hg38/WGS.CNV/2024/".execute()
     }
+    if (params.server == 'lnx02' && params.panel == 'WES' && workflow.success) {
+        "mv /fast/data/WES/[0-9][0-9][0-9][0-9][0-9][0-9]* /lnx01_data2/shared/patients/hg38/WES_ALM_ONK/2024/".execute()
+    }
 }
 
 

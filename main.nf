@@ -549,28 +549,7 @@ workflow {
 
 
 workflow.onComplete {
-    if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
-        def currentYear = Calendar.getInstance().get(Calendar.YEAR)
-        def sourceDir = "/fast/data/WGS_weekly_out"
-        def targetDir = "/lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}"
-
-        // Print paths for debugging
-        println("Source directory: ${sourceDir}")
-        println("Target directory: ${targetDir}")
-
-        // Use full command that worked in the terminal
-        def command = "mv ${sourceDir}/240516 ${targetDir}/"
-        println("Executing command: ${command}")
-        def process = ['bash', '-c', command].execute()
-        process.waitFor() // Wait for the process to complete
-
-        // Check output and error streams
-        println("Output: ${process.in.text}")
-        println("Error: ${process.err.text}")
-    }
-    
-
-    // only send email if --nomail is not specified, the user is mmaj or raspau and duration is longer than 5 minutes / 300000 milliseconds
+    // Email notification section
     if (!params.nomail && workflow.duration > 300000 && workflow.success) {
         if (System.getenv("USER") in ["raspau", "mmaj"]) {
             def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
@@ -587,8 +566,6 @@ workflow.onComplete {
             }
 
             def workDirMessage = params.keepwork ? "WorkDir             : ${workflow.workDir}" : "WorkDir             : Deleted"
-
-            // Correctly set the outputDir
             def outputDir = "${launchDir}/${launchDir.baseName}.Results"
 
             def body = """\
@@ -605,7 +582,7 @@ workflow.onComplete {
             """.stripIndent()
 
             // Send the email using the built-in sendMail function
-            sendMail(to: 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk', subject: 'GermlineNGS pipeline Update', body: body)
+            sendMail(to: 'Rasmus.Hojrup.Pausgaard@rsyd.dk', subject: 'GermlineNGS pipeline Update', body: body)
 
             // Check if --keepwork was specified
             if (!params.keepwork) {
@@ -614,8 +591,14 @@ workflow.onComplete {
                 "rm -rf ${workflow.workDir}".execute()
             }
         }
-    }    
+    }
+
+    // Move files section
+    if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
+        "mv /fast/data/WGS_weekly_out/[0-9][0-9][0-9][0-9][0-9][0-9]* /lnx01_data2/shared/patients/hg38/WGS.CNV/2024/".execute()
+    }
 }
+
 
 workflow.onError {
     // Custom message to be sent when the workflow completes

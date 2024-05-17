@@ -549,15 +549,24 @@ workflow {
 
 
 workflow.onComplete {
-    // move the output of the germlineNGS WGS_CNV from fast to lnx01
     if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
         def currentYear = Calendar.getInstance().get(Calendar.YEAR)
         def sourceDir = "/fast/data/WGS_weekly_out"
         def targetDir = "/lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}"
 
-        // Construct the command to move only directories starting with 6 digits
-        def command = "mv /fast/data/WGS_weekly_out/[0-9][0-9][0-9][0-9][0-9][0-9]* /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
-        def process = new ProcessBuilder("/bin/bash", "-c", command).start()}
+        // Print paths for debugging
+        println("Source directory: ${sourceDir}")
+        println("Target directory: ${targetDir}")
+
+        // Use full command that worked in the terminal
+        def command = "mv ${sourceDir}/240516 ${targetDir}/"
+        println("Executing command: ${command}")
+        def process = ['bash', '-c', command].execute()
+        process.waitFor() // Wait for the process to complete
+
+        // Check output and error streams
+        println("Output: ${process.in.text}")
+        println("Error: ${process.err.text}")
     
 
     // only send email if --nomail is not specified, the user is mmaj or raspau and duration is longer than 5 minutes / 300000 milliseconds

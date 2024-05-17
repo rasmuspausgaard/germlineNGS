@@ -567,6 +567,7 @@ workflow.onComplete {
         // Check output and error streams
         println("Output: ${process.in.text}")
         println("Error: ${process.err.text}")
+    }
     
 
     // only send email if --nomail is not specified, the user is mmaj or raspau and duration is longer than 5 minutes / 300000 milliseconds

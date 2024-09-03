@@ -225,9 +225,9 @@ switch (params.panel) {
     break;
 
     case "WGS_CNV":
-        reads_pattern_cram="*{-,.,_}{WG4_CNV}{-,.,_}*.cram";
-        reads_pattern_crai="*{-,.,_}{WG4_CNV}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{WG4_CNV}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_cram="*{-,.,_}{WG4_NGC}{-,.,_}*.cram";
+        reads_pattern_crai="*{-,.,_}{WG4_NGC}{-,.,_}*.crai";
+        reads_pattern_fastq="*{-,.,_}{WG4_NGC}{-,.,_}*R{1,2}*{fq,fastq}.gz";
         panelID="WGS"
     break;
 

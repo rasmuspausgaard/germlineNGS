@@ -234,7 +234,7 @@ switch (params.panel) {
     default: 
         reads_pattern_cram="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.cram";
         reads_pattern_crai="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_fastq="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged,WGS}{-,.,_}*R{1,2}*{fq,fastq}.gz";
         panelID="WGS"
     break;
 }
@@ -264,7 +264,7 @@ if (!params.samplesheet && params.fastq) {
 
     params.reads="${params.fastq}/${reads_pattern_fastq}"
     //params.reads="${params.fastq}/*{.,_,-}{R1,R2}*.gz"
-
+/*
  Channel
     .fromFilePairs(params.reads, checkIfExists: true)
     .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
@@ -272,7 +272,7 @@ if (!params.samplesheet && params.fastq) {
     .map { it -> [it[0], file(it[1][0]),file(it[1][1])] }
     .set { read_pairs_ch }
 
-/*
+*/
 
     Channel
     .fromPath(params.reads, checkIfExists: true)
@@ -288,8 +288,8 @@ if (!params.samplesheet && params.fastq) {
 
     sampleid_R1.join(sampleid_R2)
     .set { read_pairs_ch }
-read_pairs_ch.view()
-*/
+
+
 
 }
 
@@ -298,13 +298,15 @@ if (params.samplesheet && params.fastq || params.fastqInput) {
     Channel
     .fromPath(params.reads, checkIfExists: true)
     .filter {it =~/_R1_/}
-    .map { tuple(it.baseName.tokenize('-').get(0),it) }
+    //.map { tuple(it.baseName.tokenize('-').get(0),it) }
+    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
     .set { sampleid_R1}
 
     Channel
     .fromPath(params.reads, checkIfExists: true)
     .filter {it =~/_R2_/}
-    .map { tuple(it.baseName.tokenize('-').get(0),it) }
+    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
+    //.map { tuple(it.baseName.tokenize('-').get(0),it) }
     .set { sampleid_R2 }
 
     sampleid_R1.join(sampleid_R2)
@@ -317,7 +319,7 @@ if (params.samplesheet && params.fastq || params.fastqInput) {
 
 
 
-
+/*
 if (params.cram && !params.panel) {
 
     cramfiles="${params.cram}/${reads_pattern_cram}"
@@ -333,9 +335,9 @@ if (params.cram && !params.panel) {
     .map { tuple(it.baseName.tokenize('_').get(0),it) }
     .set {sampleID_crai }
 }
-
+*/
 //if (params.cram && (params.panel || params.samplesheet)) {
-    if (params.cram && params.panel) {
+    if (params.cram) { //&& params.panel
     cramfiles="${params.cram}/${reads_pattern_cram}"
     craifiles="${params.cram}/${reads_pattern_crai}"
 
@@ -547,9 +549,24 @@ workflow {
 }
 
 
-
 workflow.onComplete {
-    // Email notification section
+    // Determine the current year dynamically
+    def currentYear = new Date().format('yyyy')
+    
+    // Read IP address from file
+    def ipFilePath = '/lnx01_data2/shared/testdata/test_scripts/ip_file'
+    def ip = ""
+
+    if (new File(ipFilePath).exists()) {
+        println("IP file exists. Reading IP address.")
+        ip = new File(ipFilePath).text.trim()
+        println("IP address read from file: ${ip}")
+    } else {
+        println("Error: IP address file not found at ${ipFilePath}")
+        return
+    }
+
+    // Only send email if --nomail is not specified, the user is mmaj or raspau, and duration is longer than 5 minutes / 300000 milliseconds
     if (!params.nomail && workflow.duration > 300000 && workflow.success) {
         if (System.getenv("USER") in ["raspau", "mmaj"]) {
             def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
@@ -565,42 +582,80 @@ workflow.onComplete {
                 }
             }
 
-            def workDirMessage = params.keepwork ? "WorkDir             : ${workflow.workDir}" : "WorkDir             : Deleted"
+            def workDirMessage = params.keepwork ? "WorkDir: ${workflow.workDir}" : "WorkDir: Deleted"
+
+            // Correctly set the outputDir
             def outputDir = "${launchDir}/${launchDir.baseName}.Results"
 
             def body = """\
             Pipeline execution summary
             ---------------------------
-            Pipeline completed  : ${params.panel}
-            Sequencing run      : ${sequencingRun}${obsSampleMessage}
-            Duration            : ${workflow.duration}
-            Success             : ${workflow.success}
+            Pipeline completed: ${params.panel}
+            Sequencing run: ${sequencingRun}${obsSampleMessage}
+            Duration: ${workflow.duration}
+            Success: ${workflow.success}
             ${workDirMessage}
-            OutputDir           : ${outputDir}
-            Exit status         : ${workflow.exitStatus}
+            OutputDir: ${outputDir}
+            Exit status: ${workflow.exitStatus}
             ${obsSampleMessage}
             """.stripIndent()
 
-            // Send the email using the built-in sendMail function
-            sendMail(to: 'Rasmus.Hojrup.Pausgaard@rsyd.dk', subject: 'GermlineNGS pipeline Update', body: body)
+            // Construct the email sending command
+            def subject = 'GermlineNGS pipeline Update'
+            def recipients = 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk'
+
+            if (params.server == 'lnx01') {
+                // Use Nextflow's built-in sendMail function when on lnx01
+                sendMail(to: recipients, subject: subject, body: body)
+            } else if (params.server == 'lnx02') {
+                // Use external command to send email from lnx02
+                def emailCommand = "ssh ${ip} 'echo \"${body}\" | mail -s \"${subject}\" ${recipients}'"
+                def emailProcess = ['bash', '-c', emailCommand].execute()
+                emailProcess.waitFor()
+
+                if (emailProcess.exitValue() != 0) {
+                    println("Error sending email from remote server: ${emailProcess.err.text}")
+                } else {
+                    println("Email successfully sent from remote server.")
+                }
+            }
 
             // Check if --keepwork was specified
             if (!params.keepwork) {
                 // If --keepwork was not specified, delete the work directory
                 println("Deleting work directory: ${workflow.workDir}")
-                "rm -rf ${workflow.workDir}".execute()
+                def deleteWorkDirCommand = "rm -rf ${workflow.workDir}".execute()
+                deleteWorkDirCommand.waitFor()
+                if (deleteWorkDirCommand.exitValue() != 0) {
+                    println("Error deleting work directory: ${deleteWorkDirCommand.err.text}")
+                }
+            }
+
+            // Move WGS.CNV from lnx02 to lnx01
+            if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
+                def moveWGSCNVCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
+                def moveWGSCNVProcess = ['bash', '-c', moveWGSCNVCommand].execute()
+                moveWGSCNVProcess.waitFor()
+
+                if (moveWGSCNVProcess.exitValue() != 0) {
+                    println("Error moving WGS_CNV files: ${moveWGSCNVProcess.err.text}")
+                } 
+            }
+
+            // Move WES from lnx02 to lnx01
+            if (params.server == 'lnx02' && params.panel == 'WES' && workflow.success) {
+                def moveWESCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WES_ALM_ONK/${currentYear}/"
+                def moveWESProcess = ['bash', '-c', moveWESCommand].execute()
+                moveWESProcess.waitFor()
+
+                if (moveWESProcess.exitValue() != 0) {
+                    println("Error moving WES files: ${moveWESProcess.err.text}")
+                }
             }
         }
     }
-
-    // Move files section
-    if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
-        "mv /fast/data/WGS_weekly_out/[0-9][0-9][0-9][0-9][0-9][0-9]* /lnx01_data2/shared/patients/hg38/WGS.CNV/2024/".execute()
-    }
-    if (params.server == 'lnx02' && params.panel == 'WES' && workflow.success) {
-        "mv /fast/data/WES/[0-9][0-9][0-9][0-9][0-9][0-9]* /lnx01_data2/shared/patients/hg38/WES_ALM_ONK/2024/".execute()
-    }
 }
+
 
 
 workflow.onError {

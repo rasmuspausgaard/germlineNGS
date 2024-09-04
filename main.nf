@@ -1,3 +1,4 @@
+
 #!/usr/bin/env nextflow
 nextflow.enable.dsl = 2
 
@@ -18,6 +19,7 @@ params.hg38v1                   =null
 params.hg38v2                   =null
 params.cram                     =null
 params.fastq                    =null
+params.spring                   =null
 params.archiveStorage           =null
 params.lnx01_storage            =null
 params.skipSpliceAI             =null
@@ -130,13 +132,13 @@ def errorMessage1() {
 
     log.info"""
 
-    USER INPUT ERROR: If no samplesheet is selected, the user needs to point to a folder containing relevant fastq or CRAM files... 
+    USER INPUT ERROR: If no samplesheet is selected, the user needs to point to a folder containing relevant fastq, CRAM or SPRING files... 
     Run the script with the --help parameter to see available options
     
     """.stripIndent()
 }
 
-if (!params.samplesheet && !params.fastq && !params.cram) exit 0, errorMessage1()
+if (!params.samplesheet && !params.fastq && !params.cram && !params.spring) exit 0, errorMessage1()
 
 def FastqCRAM_error() {
     log.info"""
@@ -178,6 +180,7 @@ switch (params.panel) {
         reads_pattern_cram="*{.,-,_}{AV1}{.,-,_}*.cram";
         reads_pattern_crai="*{.,-,_}{AV1}{.,-,_}*.crai";
         reads_pattern_fastq="*{.,-,_}{AV1}{.,-,_}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_spring="*AV1*.spring";
         panelID="AV1"
     break;
 
@@ -185,6 +188,7 @@ switch (params.panel) {
         reads_pattern_cram="*{.,-,_}{CV5}{.,-,_}*.cram";
         reads_pattern_crai="*{.,-,_}{CV5}{.,-,_}*.crai";
         reads_pattern_fastq="*{.,-,_}{CV5}{.,-,_}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_spring="*CV5*.spring";
         panelID="CV5"
     break;
 
@@ -192,6 +196,7 @@ switch (params.panel) {
         reads_pattern_cram="*{GV1,GV2,GV3}*.cram";
         reads_pattern_crai="*{GV1,GV2,GV3}*.crai";
         reads_pattern_fastq="*{GV1,GV2,GV3}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_spring="*{GV1,GV2,GV3}*.spring";
         panelID="GV3"
     break;
 
@@ -206,14 +211,15 @@ switch (params.panel) {
         reads_pattern_cram="*{MV1}*.cram";
         reads_pattern_crai="*{MV1}*.crai";
         reads_pattern_fastq="*{MV1}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_spring="*MV1*.spring";
         panelID="MV1"
     break;
-
 
     case "WES_2":
         reads_pattern_cram="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.cram";
         reads_pattern_crai="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.crai";
         reads_pattern_fastq="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_spring="*{EV8,EV7,EV6}*.spring";
         panelID="WES"
     break;
 
@@ -221,6 +227,7 @@ switch (params.panel) {
         reads_pattern_cram="*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.cram";
         reads_pattern_crai="*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.crai";
         reads_pattern_fastq="*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_spring="*{EV8_ALM,EV8_ONK}*.spring";
         panelID="WES_subpanel"
     break;
 
@@ -228,13 +235,23 @@ switch (params.panel) {
         reads_pattern_cram="*{-,.,_}{WG4_NGC}{-,.,_}*.cram";
         reads_pattern_crai="*{-,.,_}{WG4_NGC}{-,.,_}*.crai";
         reads_pattern_fastq="*{-,.,_}{WG4_NGC}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_spring="*{WG4_NGC}*.spring";
+        panelID="WGS"
+    break;
+
+    case "WGS_NGC":
+        reads_pattern_cram="*{-,.,_}{WG4_NGC}{-,.,_}*.cram";
+        reads_pattern_crai="*{-,.,_}{WG4_NGC}{-,.,_}*.crai";
+        reads_pattern_fastq="*{-,.,_}{WG4_NGC}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_spring="*{WG4_NGC}*.spring";
         panelID="WGS"
     break;
 
     default: 
-        reads_pattern_cram="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.cram";
-        reads_pattern_crai="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged,WGS}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_cram="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged,WG4_NGC}{-,.,_}*.cram";
+        reads_pattern_crai="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged,WG4_NGC}{-,.,_}*.crai";
+        reads_pattern_fastq="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged,WG4_NGC}{-,.,_}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_spring="*{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged,WGS,nova,WG4_NGC}*.spring";
         panelID="WGS"
     break;
 }
@@ -294,7 +311,7 @@ if (!params.samplesheet && params.fastq) {
 }
 
 if (params.samplesheet && params.fastq || params.fastqInput) {
-// If samplesheet, reduce sampleID to NPN only (no panel/subpanel info!)
+    // If samplesheet, reduce sampleID to NPN only (no panel/subpanel info!)
     Channel
     .fromPath(params.reads, checkIfExists: true)
     .filter {it =~/_R1_/}
@@ -317,27 +334,7 @@ if (params.samplesheet && params.fastq || params.fastqInput) {
 
 // Standard use: Point to fastq for WGS ana
 
-
-
-/*
-if (params.cram && !params.panel) {
-
-    cramfiles="${params.cram}/${reads_pattern_cram}"
-    craifiles="${params.cram}/${reads_pattern_crai}"
-
-    Channel
-    .fromPath(cramfiles)
-    .map { tuple(it.baseName.tokenize('_').get(0),it) }
-    .set { sampleID_cram }
-
-    Channel
-    .fromPath(craifiles)
-    .map { tuple(it.baseName.tokenize('_').get(0),it) }
-    .set {sampleID_crai }
-}
-*/
-//if (params.cram && (params.panel || params.samplesheet)) {
-    if (params.cram) { //&& params.panel
+if (params.cram) { //&& params.panel
     cramfiles="${params.cram}/${reads_pattern_cram}"
     craifiles="${params.cram}/${reads_pattern_crai}"
 
@@ -369,6 +366,24 @@ if (params.samplesheet && !params.cram && !params.fastqInput && !params.fastq) {
     .map { tuple(it.baseName.tokenize('_').get(0),it) }
     .set {sampleID_crai }
 }
+
+////////////////////////////////////////////////////////////////////
+//// NEW June 2024: Add spring as input. ///////////////////////////
+////////////////////////////////////////////////////////////////////
+
+
+if (params.spring && !params.samplesheet) {
+
+    params.spring_reads="${params.spring}/${reads_pattern_spring}"
+
+
+    Channel
+    .fromPath(params.spring_reads, checkIfExists: true)
+    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
+    .set {spring_input_ch}
+}
+
+
 
 
 ////////////////////////////////////////////////////
@@ -422,6 +437,9 @@ if (params.samplesheet && !params.fastqInput && !params.fastq) {
     .map {tuple (it[0]+"_"+it[1]+"_"+it[2],it[4],it[5])}
     .set {meta_aln_index}
 }
+
+
+
 //////// END: Combine input and samplesheet //////////
 
 ///// Haplotypecaller splitintervals channel: /////
@@ -446,6 +464,7 @@ include {
          multiQC;
          vntyper_newRef;
          //subworkflows:
+         SUB_SPRING_DECOMPRESS;
          SUB_PREPROCESS;
          SUB_VARIANTCALL;
          SUB_VARIANTCALL_WGS;
@@ -469,9 +488,67 @@ workflow QC {
 
 workflow {
 
+    if (params.spring) {
+        SUB_SPRING_DECOMPRESS(spring_input_ch)
+        //SUB_SPRING_DECOMPRESS.out.view()
+        fq_read_input=SUB_SPRING_DECOMPRESS.out.fq_read_input_spring
+    }
+
+    if (params.fastqInput||params.fastq||params.spring || params.preprocessOnly) {
+        SUB_PREPROCESS(fq_read_input)
+        meta_aln_index=SUB_PREPROCESS.out.finalAln
+        
+    }
+
+    if (!params.fastqInput && !params.fastq && !params.spring) {
+        inputFiles_symlinks_cram(meta_aln_index)
+    }
+
+    if (!params.panel || params.panel =="WGS_CNV") { //i.e. if WGS data
+
+        if (!params.skipVariants) {
+            SUB_VARIANTCALL_WGS(meta_aln_index)
+        }
+        if (!params.skipSV) {
+            SUB_CNV_SV(meta_aln_index)
+        }
+        if (!params.skipSTR) {
+            SUB_STR(meta_aln_index)
+        }
+        
+        if (!params.skipSMN) {
+        SUB_SMN(meta_aln_index)
+        }
+
+    }
+
+    if (params.panel && params.panel!="WGS_CNV") {
+
+        SUB_VARIANTCALL(meta_aln_index)
+
+        if (params.panel=="MV1") {
+            vntyper_newRef(fq_read_input)
+        }
+    }
+    
+}
+
+
+/*
+
+workflow (works with spring) {
+
+    if (params.spring) {
+        SUB_SPRING_DECOMPRESS(spring_input_ch)
+        //SUB_SPRING_DECOMPRESS.out.view()
+        fq_read_input=SUB_SPRING_DECOMPRESS.out.fq_read_input_spring
+    }
+
     if (!params.panel || params.panel =="WGS_CNV") { 
 
         if (params.fastqInput||params.fastq) {
+
+
             SUB_PREPROCESS(fq_read_input)
           
             if (!params.preprocessOnly) {
@@ -491,7 +568,99 @@ workflow {
             }
         }
 
-        if (!params.fastqInput && !params.fastq) {
+        if (!params.fastqInput && !params.fastq && !params.spring) {
+
+            if (!params.copyCram) {
+                inputFiles_symlinks_cram(meta_aln_index)
+
+                if (!params.skipVariants) {
+                    SUB_VARIANTCALL_WGS(meta_aln_index)
+                }
+                if (!params.skipSV) {
+                    SUB_CNV_SV(meta_aln_index)
+                }
+                if (!params.skipSTR) {
+                    SUB_STR(meta_aln_index)
+                }
+                if (!params.skipSMN) {
+                SUB_SMN(meta_aln_index)
+                }
+            }
+
+            if (params.copyCram) {
+                inputFiles_symlinks_cram(meta_aln_index)
+                inputFiles_cramCopy(meta_aln_index)
+            
+                if (!params.skipVariants) {
+                    SUB_VARIANTCALL_WGS(inputFiles_cramCopy.out)
+                }
+                if (!params.skipSV) {
+                    SUB_CNV_SV(inputFiles_cramCopy.out)
+                }
+                if (!params.skipSTR) {
+                    SUB_STR(inputFiles_cramCopy.out)
+                }
+                if (!params.skipSMN) {
+                    SUB_SMN(inputFiles_cramCopy.out)
+                }
+            }
+        }
+    }
+
+    if (params.panel && params.panel!="WGS_CNV") {
+
+        if (params.fastqInput||params.fastq || params.spring) {
+            SUB_PREPROCESS(fq_read_input)
+            SUB_VARIANTCALL(SUB_PREPROCESS.out.finalAln)
+
+            if (params.panel=="MV1") {
+                vntyper_newRef(fq_read_input)
+            }
+        }
+
+        if (!params.fastqInput && !params.fastq && !params.spring) {
+            inputFiles_symlinks_cram(meta_aln_index)
+            SUB_VARIANTCALL(meta_aln_index)
+        }
+    }
+}
+
+
+*/
+
+
+/*
+workflow {
+
+    if (params.spring) {
+        workflow SUB_SPRING_DECOMPRESS(spring_input_ch)
+    }
+
+    if (!params.panel || params.panel =="WGS_CNV") { 
+
+        if (params.fastqInput||params.fastq) {
+
+
+            SUB_PREPROCESS(fq_read_input)
+          
+            if (!params.preprocessOnly) {
+                if (!params.skipVariants) {
+                    SUB_VARIANTCALL_WGS(SUB_PREPROCESS.out.finalAln)
+                }
+                if (!params.skipSV) {
+                    SUB_CNV_SV(SUB_PREPROCESS.out.finalAln)
+                }
+                if (!params.skipSTR) {
+                    SUB_STR(SUB_PREPROCESS.out.finalAln)
+                }
+                
+                if (!params.skipSMN) {
+                SUB_SMN(SUB_PREPROCESS.out.finalAln)
+                }
+            }
+        }
+
+        if (!params.fastqInput && !params.fastq && !params.spring) {
 
             if (!params.copyCram) {
                 inputFiles_symlinks_cram(meta_aln_index)
@@ -547,26 +716,12 @@ workflow {
         }
     }
 }
+*/
+
 
 
 workflow.onComplete {
-    // Determine the current year dynamically
-    def currentYear = new Date().format('yyyy')
-    
-    // Read IP address from file
-    def ipFilePath = '/lnx01_data2/shared/testdata/test_scripts/ip_file'
-    def ip = ""
-
-    if (new File(ipFilePath).exists()) {
-        println("IP file exists. Reading IP address.")
-        ip = new File(ipFilePath).text.trim()
-        println("IP address read from file: ${ip}")
-    } else {
-        println("Error: IP address file not found at ${ipFilePath}")
-        return
-    }
-
-    // Only send email if --nomail is not specified, the user is mmaj or raspau, and duration is longer than 5 minutes / 300000 milliseconds
+    // only send email if --nomail is not specified, the user is mmaj or raspau and duration is longer than 5 minutes / 300000 milliseconds
     if (!params.nomail && workflow.duration > 300000 && workflow.success) {
         if (System.getenv("USER") in ["raspau", "mmaj"]) {
             def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
@@ -582,7 +737,7 @@ workflow.onComplete {
                 }
             }
 
-            def workDirMessage = params.keepwork ? "WorkDir: ${workflow.workDir}" : "WorkDir: Deleted"
+            def workDirMessage = params.keepwork ? "WorkDir             : ${workflow.workDir}" : "WorkDir             : Deleted"
 
             // Correctly set the outputDir
             def outputDir = "${launchDir}/${launchDir.baseName}.Results"
@@ -590,63 +745,28 @@ workflow.onComplete {
             def body = """\
             Pipeline execution summary
             ---------------------------
-            Pipeline completed: ${params.panel}
-            Sequencing run: ${sequencingRun}${obsSampleMessage}
-            Duration: ${workflow.duration}
-            Success: ${workflow.success}
+            Pipeline completed  : ${params.panel}
+            Sequencing run      : ${sequencingRun}${obsSampleMessage}
+            Duration            : ${workflow.duration}
+            Success             : ${workflow.success}
             ${workDirMessage}
-            OutputDir: ${outputDir}
-            Exit status: ${workflow.exitStatus}
+            OutputDir           : ${outputDir}
+            Exit status         : ${workflow.exitStatus}
             ${obsSampleMessage}
             """.stripIndent()
 
-            // Construct the email sending command
-            def subject = 'GermlineNGS pipeline Update'
-            def recipients = 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk'
-
-            if (params.server == 'lnx01') {
-                // Use Nextflow's built-in sendMail function when on lnx01
-                sendMail(to: recipients, subject: subject, body: body)
-            } else if (params.server == 'lnx02') {
-                // Use external command to send email from lnx02
-                def emailCommand = "ssh ${ip} 'echo \"${body}\" | mail -s \"${subject}\" ${recipients}'"
-                def emailProcess = ['bash', '-c', emailCommand].execute()
-                emailProcess.waitFor()
-
-                if (emailProcess.exitValue() != 0) {
-                    println("Error sending email from remote server: ${emailProcess.err.text}")
-                } else {
-                    println("Email successfully sent from remote server.")
-                }
-            }
+            // Send the email using the built-in sendMail function
+            sendMail(to: 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk', subject: 'GermlineNGS pipeline Update', body: body)
 
             // Check if --keepwork was specified
             if (!params.keepwork) {
                 // If --keepwork was not specified, delete the work directory
                 println("Deleting work directory: ${workflow.workDir}")
-                def deleteWorkDirCommand = "rm -rf ${workflow.workDir}".execute()
-                deleteWorkDirCommand.waitFor()
-                if (deleteWorkDirCommand.exitValue() != 0) {
-                    println("Error deleting work directory: ${deleteWorkDirCommand.err.text}")
-                }
-            }
-           
-
-            // Move WES from lnx02 to lnx01
-            if (params.server == 'lnx02' && params.panel == 'WES' && workflow.success) {
-                def moveWESCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WES_ALM_ONK/${currentYear}/"
-                def moveWESProcess = ['bash', '-c', moveWESCommand].execute()
-                moveWESProcess.waitFor()
-
-                if (moveWESProcess.exitValue() != 0) {
-                    println("Error moving WES files: ${moveWESProcess.err.text}")
-                }
+                "rm -rf ${workflow.workDir}".execute()
             }
         }
-    }
+    }    
 }
-
-
 
 workflow.onError {
     // Custom message to be sent when the workflow completes
@@ -668,3 +788,4 @@ workflow.onError {
     sendMail(to: 'Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk', subject: 'Pipeline Update', body: body)
 
 }
+

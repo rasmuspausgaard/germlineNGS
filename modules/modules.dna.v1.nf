@@ -1,3 +1,4 @@
+
 #!/usr/bin/env nextflow
 nextflow.enable.dsl = 2
 
@@ -231,12 +232,6 @@ switch (params.panel) {
     case "WGS_CNV":
         ROI="${WES_ROI}";
         panelID="WGS_CNV";
-        panelID_storage="WGS"
-    break;
-
-    case "WGS_NGC":
-        ROI="${WES_ROI}";
-        panelID="WGS_NGC";
         panelID_storage="WGS"
     break;
     
@@ -727,7 +722,7 @@ process jointgenotyping {
 
 process haplotypecallerSplitIntervals {
     errorStrategy 'ignore'
-    maxForks 60
+    maxForks 3
 
     input:
     tuple val(sampleID), path(bam), path(bai), val(sub_intID), path(sub_interval) //from HC_scatter_input_bam.combine(interval_list1)

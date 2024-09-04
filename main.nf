@@ -225,17 +225,10 @@ switch (params.panel) {
     break;
 
     case "WGS_CNV":
-        reads_pattern_cram="*{-,.,_}{WG4_CNV}{-,.,_}*.cram";
-        reads_pattern_crai="*{-,.,_}{WG4_CNV}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{WG4_CNV}{-,.,_}*R{1,2}*{fq,fastq}.gz";
-        panelID="WGS_CNV"
-    break;
-
-    case "WGS_NGC":
         reads_pattern_cram="*{-,.,_}{WG4_NGC}{-,.,_}*.cram";
         reads_pattern_crai="*{-,.,_}{WG4_NGC}{-,.,_}*.crai";
         reads_pattern_fastq="*{-,.,_}{WG4_NGC}{-,.,_}*R{1,2}*{fq,fastq}.gz";
-        panelID="WGS_NGC"
+        panelID="WGS"
     break;
 
     default: 
@@ -637,17 +630,7 @@ workflow.onComplete {
                     println("Error deleting work directory: ${deleteWorkDirCommand.err.text}")
                 }
             }
-
-            // Move WGS.CNV from lnx02 to lnx01
-            if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
-                def moveWGSCNVCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
-                def moveWGSCNVProcess = ['bash', '-c', moveWGSCNVCommand].execute()
-                moveWGSCNVProcess.waitFor()
-
-                if (moveWGSCNVProcess.exitValue() != 0) {
-                    println("Error moving WGS_CNV files: ${moveWGSCNVProcess.err.text}")
-                } 
-            }
+           
 
             // Move WES from lnx02 to lnx01
             if (params.server == 'lnx02' && params.panel == 'WES' && workflow.success) {

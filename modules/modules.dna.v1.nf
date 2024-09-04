@@ -233,6 +233,12 @@ switch (params.panel) {
         panelID="WGS_CNV";
         panelID_storage="WGS"
     break;
+
+    case "WGS_NGC":
+        ROI="${WES_ROI}";
+        panelID="WGS_NGC";
+        panelID_storage="WGS"
+    break;
     
     default: 
         ROI="${WES_ROI}";

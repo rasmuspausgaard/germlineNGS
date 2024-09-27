@@ -6,6 +6,7 @@ This pipeline is used for the following NGS designs at KG Vejle:
 2. WES
 3. WGS CNV (simple pipeline for WGS CNV)
 4. WGS (full analysis)
+5. NGC (WGS looks for WGS_NGC)
 
 The script takes mapped data (CRAM files) or raw data (fastq) as input.
 Hg38 (v3) assembly is used by default. Hg19 is no longer supported. 

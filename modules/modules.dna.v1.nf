@@ -24,7 +24,12 @@ switch (params.gatk) {
     case 'v45':
     gatk_image="gatk4500.sif";
     default:
-    gatk_image="gatk419.sif";
+        if (params.panel=="AV1" || params.panel=="GV3" || params.panel=="CV5"){
+            gatk_image="gatk419.sif";
+        }
+        else {
+            gatk_image="gatk4400.sif";
+        }
     break;
 }
 
@@ -233,6 +238,12 @@ switch (params.panel) {
         panelID="WGS_CNV";
         panelID_storage="WGS"
     break;
+
+    case "WGS_NGC":
+        ROI="${WES_ROI}";
+        panelID="WGS_NGC";
+        panelID_storage="WGS"
+    break;
     
     default: 
         ROI="${WES_ROI}";
@@ -311,6 +322,20 @@ process inputFiles_symlinks_cram{
 }
 
 
+process inputFiles_symlinks_spring{
+    errorStrategy 'ignore'
+    publishDir "${outputDir}/input_symlinks/", mode: 'link', pattern: '*.spring'
+
+    input:
+    tuple val(sampleID), path(spring)    
+    output:
+    path(spring)
+    script:
+    """
+    """
+}
+
+
 process inputFiles_cramCopy{
     errorStrategy 'ignore'
     publishDir "${outputDir}/input_CRAM/", mode: 'copy', pattern: '*.{ba,cr}*'
@@ -325,6 +350,59 @@ process inputFiles_cramCopy{
     """
 }
 
+
+///////////////////////////////// SPRING COMPRESS / DECOMPRESS //////////////
+
+
+process spring_compression {
+    tag "$sampleID"
+    errorStrategy 'ignore'
+    publishDir "${springOutDir}/${runfolder}.spring", mode: 'copy', pattern:'*.spring'
+
+    cpus 16
+    maxForks 5
+    conda '/data/shared/programmer/miniconda3/envs/spring'
+
+    input:
+    tuple val(sampleID), path(r1), path(r2)
+
+    output:
+    path("${sampleID}.spring")
+    script:
+
+    """
+    spring -c \
+    -i ${r1} ${r2} \
+    -t ${task.cpus} \
+    -o ${sampleID}.spring \
+    -g
+    """
+
+}
+
+process spring_decompress {
+    tag "$sampleID"
+    errorStrategy 'ignore'
+    publishDir "${outputDir}/fastqFromSpring/", mode: 'copy', pattern:"*.fastq.gz"
+
+    cpus 8
+    maxForks 12
+    conda '/data/shared/programmer/miniconda3/envs/spring'
+
+    input:
+    tuple val(sampleID), path(springfile)
+
+    output:
+    tuple val(sampleID), path("*_R1.fastq.gz"), path("*_R2.fastq.gz"),emit: spring_fastq
+    script:
+    """
+    spring -d \
+    -i ${springfile} \
+    -o ${sampleID}_R1.fastq.gz ${sampleID}_R2.fastq.gz \
+    -g
+
+    """
+}
 
 
 
@@ -721,7 +799,13 @@ process jointgenotyping {
 
 process haplotypecallerSplitIntervals {
     errorStrategy 'ignore'
-    maxForks 3
+    
+    if (params.server=="lnx02"){
+        maxForks 50
+    }
+    if (params.server=="lnx01"){
+        maxForks 20
+    }
 
     input:
     tuple val(sampleID), path(bam), path(bai), val(sub_intID), path(sub_interval) //from HC_scatter_input_bam.combine(interval_list1)
@@ -795,8 +879,6 @@ process genotypeSingle {
     ${gatk_exec} IndexFeatureFile \
     -I ${sampleID}.WES_ROI.vcf.gz
     """
-
-
 }
 
 
@@ -835,10 +917,6 @@ process jointgenoScatter{
 
 
 
-
-
-
-
 /////////////////////////////// SV CALLING MODULES //////////////////////
 
 process manta {
@@ -848,7 +926,7 @@ process manta {
     publishDir "${outputDir}/structuralVariants/manta/allOutput/", mode: 'copy'
     publishDir "${outputDir}/structuralVariants/manta/", mode: 'copy', pattern: "*.{AFanno,filtered}.*"
     cpus 10
-    maxForks 6
+    maxForks 3
 
     input:
     tuple val(sampleID), path(aln), path(index)
@@ -910,7 +988,7 @@ process lumpy {
     publishDir "${outputDir}/structuralVariants/lumpy/", mode: 'copy'
     
     cpus 10
-    maxForks 6
+    maxForks 3
 
     input:
     tuple val(sampleID), path(aln), path(index)
@@ -958,8 +1036,8 @@ process delly126 {
     publishDir "${inhouse_SV}/delly/raw_calls/", mode: 'copy', pattern: "*.raw.*"
     publishDir "${outputDir}/structuralVariants/delly/", mode: 'copy'
     //publishDir "${outputDir}/structuralVariants/manta/", mode: 'copy', pattern: "*.{AFanno,filtered}.*"
-    cpus 1
-    maxForks 6
+    cpus 5
+    maxForks 3
 
     input:
     tuple val(sampleID), path(aln), path(index)
@@ -996,7 +1074,7 @@ process cnvkit {
     tag "$sampleID"
 
     cpus 10
-    maxForks 6
+    maxForks 3
 
     publishDir "${outputDir}/structuralVariants/cnvkit/", mode: 'copy'
     publishDir "${inhouse_SV}/CNVkit/CNNfiles/", mode: 'copy', pattern: '*.cnn'
@@ -1017,7 +1095,7 @@ process cnvkit {
     mv ${index} intermediate_crai
     cp intermediate_crai ${index}
     rm intermediate_crai
-    singularity run -B ${s_bind} ${simgpath}/cnvkit0910_MJconda.sif cnvkit.py batch \
+    singularity run -B ${s_bind} ${simgpath}/cnvkit.sif cnvkit.py batch \
     ${aln} \
     -m wgs \
     -p ${task.cpus} \
@@ -1045,12 +1123,12 @@ process cnvkitExportFiles {
 
     script:
     """
-    singularity run -B ${s_bind} ${simgpath}/cnvkit0910_MJconda.sif cnvkit.py export vcf \
+    singularity run -B ${s_bind} ${simgpath}/cnvkit.sif cnvkit.py export vcf \
     ${cnvkit_calls} \
     -i ${sampleID} \
     -o ${sampleID}.cnvkit.vcf
 
-    singularity run -B ${s_bind} ${simgpath}/cnvkit0910_MJconda.sif cnvkit.py export seg \
+    singularity run -B ${s_bind} ${simgpath}/cnvkit.sif cnvkit.py export seg \
     ${cnvkit_cnr} \
     -o ${sampleID}.cnvkit.cnr.seg
 
@@ -1139,25 +1217,117 @@ process expansionHunter {
 process stripy {
     errorStrategy 'ignore'
     tag "$sampleID"
-    publishDir "${outputDir}/repeatExpansions/STRipy/", mode: 'copy'
+//    publishDir "${outputDir}/repeatExpansions/STRipy/", mode: 'copy'
+    publishDir "${outputDir}/repeatExpansions/STRipy_ALL/", mode: 'copy',pattern:"*.ALL.html"
+    publishDir "${outputDir}/repeatExpansions/STRipy_ataksi/", mode: 'copy',pattern:"*.ataksi.html"
+    publishDir "${outputDir}/repeatExpansions/STRipy_myotoni/", mode: 'copy',pattern:"*.myotoni.html"
+    publishDir "${outputDir}/repeatExpansions/STRipy_neuropati/", mode: 'copy',pattern:"*.neuropati.html"
+    publishDir "${outputDir}/repeatExpansions/STRipy_ALS_FTD/", mode: 'copy',pattern:"*.ALS_FTD.html"
+    publishDir "${outputDir}/repeatExpansions/STRipy_myopati/", mode: 'copy',pattern:"*.myopati.html"
+    publishDir "${outputDir}/repeatExpansions/STRipy_epilepsi/", mode: 'copy',pattern:"*.epilepsi.html"
 
+    
     input:
     tuple val(sampleID), path(aln), path(index)
 
     output:
-    path("${sampleID}.stripy/*.html")
+    //path("${sampleID}.stripy/*.html")
+    path("*.html")
+
     script:
     """
-    mkdir ${sampleID}.stripy/ 
+    mkdir ${sampleID}.stripy/
     sleep 5
+
     python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
     --genome ${params.genome} \
     --reference ${genome_fasta} \
-    --locus AFF2,AR,ARX_1,ARX_2,ATN1,ATXN1,ATXN10,ATXN2,ATXN3,ATXN7,ATXN8OS,BEAN1,C9ORF72,CACNA1A,CBL,CNBP,COMP,DAB1,DIP2B,DMD,DMPK,FGF14,FMR1,FOXL2,FXN,GIPC1,GLS,HOXA13_1,HOXA13_2,HOXA13_3,HOXD13,HTT,JPH3,LRP12,MARCHF6,NIPA1,NOP56,NOTCH2NLC,NUTM2B-AS1,PABPN1,PHOX2B,PPP2R2B,PRDM12,RAPGEF2,RFC1,RILPL1,RUNX2,SAMD12,SOX3,STARD7,TBP,TBX1,TCF4,TNRC6A,XYLT1,YEATS2,ZIC2,ZIC3 \
+    --locus ABCD3,AFF2,AR,ARX_1,ARX_2,ATN1,ATXN1,ATXN10,ATXN2,ATXN3,ATXN7,ATXN8OS,BEAN1,C9ORF72,CACNA1A,CBL,CNBP,COMP,CSTB,DAB1,DIP2B,DMD,DMPK,EIF4A3,FGF14,FMR1,FOXL2,FXN,GIPC1,GLS,HOXA13_1,HOXA13_2,HOXA13_3,HOXD13,HTT,JPH3,LRP12,MARCHF6,NIPA1,NOP56,NOTCH2NLC,NUTM2B-AS1,PABPN1,PHOX2B,PPP2R2B,PRDM12,PPNP,RAPGEF2,RFC1,RILPL1,RUNX2,SAMD12,SOX3,STARD7,TBP,TBX1,TCF4,THAP11,TNRC6A,VWA1,XYLT1,YEATS2,ZFHX3,ZIC2,ZIC3 \
     --output ${sampleID}.stripy/ \
     --input ${aln}
+
+    mv ${sampleID}.stripy/${aln}.html ${sampleID}.stripy.ALL.html
+
+    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    --genome ${params.genome} \
+    --reference ${genome_fasta} \
+    --locus ATN1,ATXN1,ATXN10,ATXN2,ATXN3,ATXN7,ATXN8OS,BEAN1,CACNA1A,CSTB,DAB1,FGF14,FMR1,FXN,NOP56,NOTCH2NLC,PPP2R2B,RFC1,TBP,YEATS2 \
+    --output ${sampleID}.stripy/ \
+    --input ${aln}
+
+    mv ${sampleID}.stripy/${aln}.html ${sampleID}.stripy.ataksi.html
+
+    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    --genome ${params.genome} \
+    --reference ${genome_fasta} \
+    --locus ATN1,ATXN1,ATXN2,ATXN3,ATXN10,ATXN80S,C9ORF72,CACNA1A,FXN,JPH3,NOTCH2NLC,PPP2R2B,TBP \
+    --output ${sampleID}.stripy/ \
+    --input ${aln}
+
+    mv ${sampleID}.stripy/${aln}.html ${sampleID}.stripy.myotoni.html
+
+    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    --genome ${params.genome} \
+    --reference ${genome_fasta} \
+    --locus RFC1 \
+    --output ${sampleID}.stripy/ \
+    --input ${aln}
+
+    mv ${sampleID}.stripy/${aln}.html ${sampleID}.stripy.neuropati.html
+
+    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    --genome ${params.genome} \
+    --reference ${genome_fasta} \
+    --locus AR,ATXN2,C9ORF72,NOP56,NOTCH2NLC \
+    --output ${sampleID}.stripy/ \
+    --input ${aln}
+    mv ${sampleID}.stripy/${aln}.html ${sampleID}.stripy.ALS_FTD.html
+
+    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    --genome ${params.genome} \
+    --reference ${genome_fasta} \
+    --locus CNBP,DMD,DMPK,GIPC1,LRP12,NOTCH2NLC,NUTM2B-AS1,PABPN1,RILPL1 \
+    --output ${sampleID}.stripy/ \
+    --input ${aln}
+    mv ${sampleID}.stripy/${aln}.html ${sampleID}.stripy.myopati.html
+
+    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    --genome ${params.genome} \
+    --reference ${genome_fasta} \
+    --locus CSTB,MARCHF6,RAPGEF2,SAMD12,STARD7,TNRC6A,YEATS2 \
+    --output ${sampleID}.stripy/ \
+    --input ${aln}
+    mv ${sampleID}.stripy/${aln}.html ${sampleID}.stripy.epilepsi.html
+
     """
 }
+/*
+    mkdir ${sampleID}.stripy_ataksi/ 
+    mkdir ${sampleID}.stripy_myotoni/
+    mkdir ${sampleID}.stripy_neuropati/
+    mkdir ${sampleID}.stripy_ALS_FTD/
+    mkdir ${sampleID}.stripy_myopati/    
+    mkdir ${sampleID}.stripy_epilepsi/  
+
+Basal:
+ATN1,ATXN1,ATXN2,ATXN3,ATXN10,ATXN8OS,C9ORF72,CACNA1A,FXN,JPH3,NOTCH2NLC,PPP2R2B,TBP
+
+
+neuropati:
+RFC1
+
+ALS_AFD:
+AR, ATXN2, C9ORF72, NOP56, NOTCH2NLC
+
+myopati
+CNBP, DMD, DMPK, GIPC1, LRP12, NOTCH2NLC, NUTM2B-AS1, PABPN1, RILPL1
+
+
+epilepsi:
+CSTB, MARCHF6, RAPGEF2, SAMD12, STARD7, TNRC6A, YEATS2
+
+*/
+
 
 process prepareManifestSMN {
     
@@ -1210,7 +1380,8 @@ process vntyper_newRef {
     tuple val(sampleID), path(r1), path(r2)
 
     output:
-    tuple val(sampleID), path("vntyper${sampleID}.vntyper/*")
+    //tuple val(sampleID), path("vntyper${sampleID}.vntyper/*")
+    tuple val(sampleID), path("*/*.{tsv,vcf}")
     script:
     """
     singularity run -B ${s_bind} ${simgpath}/vntyper120.sif \
@@ -1219,14 +1390,14 @@ process vntyper_newRef {
     -t ${task.cpus} \
     -w vntyper \
     -m ${vntyperREF}/hg19_genic_VNTRs.db \
-    -o ${sampleID}.vntyper \
+    -o ${sampleID} \
     -ref_VNTR ${vntyperREF}/MUC1-VNTR_NEW.fa \
     --fastq \
     --ignore_advntr \
     -p /data/shared/programmer/vntyper/VNtyper/
     """
 }
-
+    //-o ${sampleID}.vntyper \
 
 
 
@@ -1234,11 +1405,25 @@ process vntyper_newRef {
 /// SUBWORKFLOWS meta r1 r2 input channel///////
 /////////////////////////////////////////////////////////////
 
+workflow SUB_SPRING_DECOMPRESS {
+
+    take:
+    spring_input_ch
+
+    main:
+    inputFiles_symlinks_spring(spring_input_ch)
+    spring_decompress(spring_input_ch)
+    emit:
+    fq_read_input_spring=spring_decompress.out.spring_fastq
+
+}
+
+
 workflow SUB_PREPROCESS {
 
     take:
     fq_read_input
-    
+
     main:
     inputFiles_symlinks_fq(fq_read_input)
     fastq_to_ubam(fq_read_input)
@@ -1275,9 +1460,11 @@ workflow SUB_VARIANTCALL {
     meta_aln_index  // sampleID, aln, index
     main:
     haplotypecaller(meta_aln_index)
+
     haplotypecaller.out.sample_gvcf
     .map{ tuple(it.simpleName, it) }
     .set { gvcf_list }
+
     if (panelID=="AV1"){
         gvcf_list
             .filter {it =~/_CV6/}

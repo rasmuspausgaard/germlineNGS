@@ -1,48 +1,48 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl = 2
 
-
-date=new Date().format( 'yyMMdd' )
-user="$USER"
-runID="${date}.${user}"
+date = new Date().format('yyMMdd')
+user = "$USER"
+runID = "${date}.${user}"
 
 
 //Unset parameters
-params.help                     =false
-params.panel                    =null
-params.samplesheet              =null
-params.preprocessOnly           =null
-params.keepwork                 =null
-params.nomail                   =null
-params.hg38v1                   =null
-params.hg38v2                   =null
-params.cram                     =null
-params.fastq                    =null
-params.archiveStorage           =null
-params.lnx01_storage            =null
-params.skipSpliceAI             =null
-params.skipJointGenotyping      =null
-params.fastqInput               =null
-params.skipSV                   =null
-params.skipVariants             =null
-params.skipQC                   =null
-params.skipSTR                  =null
-params.skipSMN                  =null
-//Preset parameters:
-params.gatk                     =null
-params.copyCram                 =null
-params.single                   =null
+params.help                     = false
+params.panel                    = null
+params.samplesheet              = null
+params.preprocessOnly           = null
+params.keepwork                 = null
+params.nomail                   = null
+params.hg38v1                   = null
+params.hg38v2                   = null
+params.cram                     = null
+params.fastq                    = null
+params.archiveStorage           = null
+params.lnx01_storage            = null
+params.skipSpliceAI             = null
+params.skipJointGenotyping      = null
+params.fastqInput               = null
+params.skipSV                   = null
+params.skipVariants             = null
+params.skipQC                   = null
+params.skipSTR                  = null
+params.skipSMN                  = null
+// Preset parameters:
+params.gatk                     = null
+params.copyCram                 = null
+params.single                   = null
 params.server                   = "lnx01"
 params.genome                   = "hg38"
 params.outdir                   = "${launchDir.baseName}.Results"
 params.rundir                   = "${launchDir.baseName}"
-//params.intervals_list           ="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
+//params.intervals_list          = "/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
 
 
-
+/* --------------------------
+   Helper / Error messages
+   -------------------------- */
 def helpMessage() {
-    log.info"""
-
+    log.info """
     Usage:
 
     KG Vejle Germline script (WGS, WES or panels)
@@ -59,18 +59,24 @@ def helpMessage() {
 
     The above information can usually be extracted directly from the sample overview excel file
 
-    If the inputdata (FastQ or CRAM) have been transferred to the data archive (which it is by default), the script will automatically find the relevant inputdata  and create symlinks for them in the output (results) directory.
+    If the inputdata (FastQ or CRAM) have been transferred to the data archive (which it is by default),
+    the script will automatically find the relevant inputdata and create symlinks for them in the output (results) directory.
 
-    The script will automatically look for FastQ or CRAM files in subfolders at /lnx01_data2/shared/dataArchive/. This location contains read-only access to the data archive, containing all FastQ and CRAM files. There's no need to copy or move any data.
+    The script will automatically look for FastQ or CRAM files in subfolders at /lnx01_data2/shared/dataArchive/.
+    This location contains read-only access to the data archive, containing all FastQ and CRAM files.
+    There's no need to copy or move any data.
 
-    The user can point to a specific folder containing raw data (FastQ) using the --fastq option  or alignment data (CRAM) using the --cram option
-    This is only needed if input data (FastQ or CRAM) exists outside the data archive (e.g. if data are in personal folders), or if the script is run without samplesheet.
+    The user can point to a specific folder containing raw data (FastQ) using the --fastq option
+    or alignment data (CRAM) using the --cram option.
+    This is only needed if input data (FastQ or CRAM) exists outside the data archive
+    (e.g. if data are in personal folders), or if the script is run without samplesheet.
 
-    If the script is run without samplesheet, the user MUST point to a folder containing inputdata with either the --fastq or --cram option.
+    If the script is run without samplesheet, the user MUST point to a folder containing inputdata
+    with either the --fastq or --cram option.
 
     Main options:
       --help            Print this help message
-      
+
       --genome          hg19 or hg38
                             Default: hg38 v3 (masked + decoys)
 
@@ -79,19 +85,19 @@ def helpMessage() {
       --hg38v2          Use hg38 v2 (ucsc.hg38.NGS.analysisSet.fa).
 
       --gatk            "danak" (v.4.1.9) or "new" (v.4.4.0.0)
-                            Default: danak  
-      
+                            Default: danak
+
       --samplesheet     Path to samplesheet for samples to be analyzed (Only required for WGS analysis)
-      
-      --fastq            Path to folder with wgs fastq files
+
+      --fastq           Path to folder with wgs fastq files
                             Default: /lnx01_data2/shared/dataArchive/{all subfolders}
 
       --fastqInput      Use fastq as input (i.e. perform trimming, and alignment)
                             Default: Not set - use CRAM as input.
-      
-      --cram             Path to folder with wgs CRAM files
+
+      --cram            Path to folder with wgs CRAM files
                             Default: /lnx01_data2/shared/dataArchive/{all subfolders}
-      
+
       --outdir          Manually set output directory
                             Default: {current_dir}.Results
 
@@ -99,10 +105,11 @@ def helpMessage() {
                             Default: Not set - removes the Work folder
 
       --nomail          Does not send a mail-message when completing a script
-                            Default: Not set - sends mail message if the user is mmaj or raspau and only if the script has been running longer than 20 minutes.
+                            Default: Not set - sends mail message if the user is mmaj or raspau
+                            and only if the script has been running longer than 20 minutes.
 
       --panel           Type of paneldata to analyze. Currently supports AV1, CV5 and MV1
-                            Default: Not set - assumes WGS data by dfault
+                            Default: Not set - assumes WGS data by default
 
 
     WGS Analysis: Select or modify analysis steps:
@@ -121,359 +128,316 @@ def helpMessage() {
 
       --skipSMN         Do not call SMN1 and SMN2 variants
                             Default: Call SMN variants with SMNCopyNumberCaller
-
     """.stripIndent()
 }
 if (params.help) exit 0, helpMessage()
 
 def errorMessage1() {
-
-    log.info"""
-
-    USER INPUT ERROR: If no samplesheet is selected, the user needs to point to a folder containing relevant fastq or CRAM files... 
+    log.info """
+    USER INPUT ERROR: If no samplesheet is selected, the user needs to point to a folder containing
+    relevant fastq or CRAM files...
     Run the script with the --help parameter to see available options
-    
     """.stripIndent()
 }
-
 if (!params.samplesheet && !params.fastq && !params.cram) exit 0, errorMessage1()
 
 def FastqCRAM_error() {
-    log.info"""
-    USER INPUT ERROR: The user should point to either FastQ (--fastq parameter) or CRAM (--cram parameter) as input - not both! 
+    log.info """
+    USER INPUT ERROR: The user should point to either FastQ (--fastq parameter) or CRAM (--cram parameter)
+    as input - not both!
     """.stripIndent()
 }
-
 if (params.cram && params.fastq) exit 0, FastqCRAM_error()
 
 
-
-
-
+/* --------------------------
+   Set up server & data paths
+   -------------------------- */
 switch (params.server) {
     case 'lnx02':
-       // modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules";
-        //subworkflow_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows";
-        dataArchive="/lnx01_data2/shared/dataArchive";
-    break;
+        dataArchive = "/lnx01_data2/shared/dataArchive"
+        break
 
     case 'lnx01':
-        modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules";
-        subworkflow_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows";
-        dataArchive="/lnx01_data2/shared/dataArchive";
-    break;
-    case 'kga01':
-        modules_dir="/home/mmaj/LNX01_mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules";
-        subworkflow_dir="/home/mmaj/LNX01_mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows";
-        dataArchive="/data/shared/dataArchive";
+        modules_dir    = "/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules"
+        subworkflow_dir= "/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows"
+        dataArchive    = "/lnx01_data2/shared/dataArchive"
+        break
 
-    break;
+    case 'kga01':
+        modules_dir    = "/home/mmaj/LNX01_mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules"
+        subworkflow_dir= "/home/mmaj/LNX01_mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows"
+        dataArchive    = "/data/shared/dataArchive"
+        break
 }
 
 
-
+/* --------------------------
+   Set up patterns for panel
+   -------------------------- */
 switch (params.panel) {
 
     case "AV1":
-        reads_pattern_cram="*{.,-,_}{AV1}{.,-,_}*.cram";
-        reads_pattern_crai="*{.,-,_}{AV1}{.,-,_}*.crai";
-        reads_pattern_fastq="*{.,-,_}{AV1}{.,-,_}*R{1,2}*{fq,fastq}.gz";
-        panelID="AV1"
-    break;
+        reads_pattern_cram  = "*{.,-,_}{AV1}{.,-,_}*.cram"
+        reads_pattern_crai  = "*{.,-,_}{AV1}{.,-,_}*.crai"
+        reads_pattern_fastq = "*{.,-,_}{AV1}{.,-,_}*R{1,2}*{fq,fastq}.gz"
+        panelID = "AV1"
+        break
 
     case "CV5":
-        reads_pattern_cram="*{.,-,_}{CV5}{.,-,_}*.cram";
-        reads_pattern_crai="*{.,-,_}{CV5}{.,-,_}*.crai";
-        reads_pattern_fastq="*{.,-,_}{CV5}{.,-,_}*R{1,2}*{fq,fastq}.gz";
-        panelID="CV5"
-    break;
+        reads_pattern_cram  = "*{.,-,_}{CV5}{.,-,_}*.cram"
+        reads_pattern_crai  = "*{.,-,_}{CV5}{.,-,_}*.crai"
+        reads_pattern_fastq = "*{.,-,_}{CV5}{.,-,_}*R{1,2}*{fq,fastq}.gz"
+        panelID = "CV5"
+        break
 
     case "GV3":
-        reads_pattern_cram="*{GV1,GV2,GV3}*.cram";
-        reads_pattern_crai="*{GV1,GV2,GV3}*.crai";
-        reads_pattern_fastq="*{GV1,GV2,GV3}*R{1,2}*{fq,fastq}.gz";
-        panelID="GV3"
-    break;
+        reads_pattern_cram  = "*{GV1,GV2,GV3}*.cram"
+        reads_pattern_crai  = "*{GV1,GV2,GV3}*.crai"
+        reads_pattern_fastq = "*{GV1,GV2,GV3}*R{1,2}*{fq,fastq}.gz"
+        panelID = "GV3"
+        break
 
     case "GV_TEST":
-        reads_pattern_cram="*.cram";
-        reads_pattern_crai="*.crai";
-        reads_pattern_fastq="*R{1,2}*{fq,fastq}.gz";
-        panelID="GV_TEST"
-    break;
+        reads_pattern_cram  = "*.cram"
+        reads_pattern_crai  = "*.crai"
+        reads_pattern_fastq = "*R{1,2}*{fq,fastq}.gz"
+        panelID = "GV_TEST"
+        break
 
     case "MV1":
-        reads_pattern_cram="*{MV1}*.cram";
-        reads_pattern_crai="*{MV1}*.crai";
-        reads_pattern_fastq="*{MV1}*R{1,2}*{fq,fastq}.gz";
-        panelID="MV1"
-    break;
-
+        reads_pattern_cram  = "*{MV1}*.cram"
+        reads_pattern_crai  = "*{MV1}*.crai"
+        reads_pattern_fastq = "*{MV1}*R{1,2}*{fq,fastq}.gz"
+        panelID = "MV1"
+        break
 
     case "WES_2":
-        reads_pattern_cram="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.cram";
-        reads_pattern_crai="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{EV8,EV7,EV6}{-,.,_}*R{1,2}*{fq,fastq}.gz";
-        panelID="WES"
-    break;
+        reads_pattern_cram  = "*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.cram"
+        reads_pattern_crai  = "*{-,.,_}{EV8,EV7,EV6}{-,.,_}*.crai"
+        reads_pattern_fastq = "*{-,.,_}{EV8,EV7,EV6}{-,.,_}*R{1,2}*{fq,fastq}.gz"
+        panelID = "WES"
+        break
 
     case "WES":
-        reads_pattern_cram="*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.cram";
-        reads_pattern_crai="*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*R{1,2}*{fq,fastq}.gz";
-        panelID="WES_subpanel"
-    break;
+        reads_pattern_cram  = "*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.cram"
+        reads_pattern_crai  = "*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.crai"
+        reads_pattern_fastq = "*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*R{1,2}*{fq,fastq}.gz"
+        panelID = "WES_subpanel"
+        break
 
     case "WGS_CNV":
-        reads_pattern_cram="*{-,.,_}{WG4_CNV}{-,.,_}*.cram";
-        reads_pattern_crai="*{-,.,_}{WG4_CNV}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{WG4_CNV}{-,.,_}*R{1,2}*{fq,fastq}.gz";
-        panelID="WGS"
-    break;
+        reads_pattern_cram  = "*{-,.,_}{WG4_CNV}{-,.,_}*.cram"
+        reads_pattern_crai  = "*{-,.,_}{WG4_CNV}{-,.,_}*.crai"
+        reads_pattern_fastq = "*{-,.,_}{WG4_CNV}{-,.,_}*R{1,2}*{fq,fastq}.gz"
+        panelID = "WGS"
+        break
 
-    default: 
-        reads_pattern_cram="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.cram";
-        reads_pattern_crai="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged,WGS}{-,.,_}*R{1,2}*{fq,fastq}.gz";
-        panelID="WGS"
-    break;
+    default:
+        reads_pattern_cram  = "*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.cram"
+        reads_pattern_crai  = "*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.crai"
+        reads_pattern_fastq = "*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged,WGS}{-,.,_}*R{1,2}*{fq,fastq}.gz"
+        panelID = "WGS"
+        break
 }
 
 
+/* ----------------------------------------
+   INPUT DATA (fastq or CRAM) channel setup
+   ---------------------------------------- */
 
-////////////////////////////////////////////////////
-////// INPUT DATA (fastq or CRAM) channels //////////
-////////////////////////////////////////////////////
-/*
-if (params.fastq) {
-    params.reads="${params.fastq}/${reads_pattern_fastq}"
-}
-*/
+// If the user sets `--fastqInput` but doesn't provide `--fastq`, default to searching in dataArchive
 if (!params.fastq && params.fastqInput) {
-
-    params.reads="${dataArchive}/{lnx01,lnx02,kga01_novaRuns,tank_kga_external_archive}/**/${reads_pattern_fastq}"
+    params.reads = "${dataArchive}/{lnx01,lnx02,kga01_novaRuns,tank_kga_external_archive}/**/${reads_pattern_fastq}"
 }
 
 
-// if fastq input, set reads input channels
-
-// Standard use: point to fastq folder for paneldata
-
+// If NOT samplesheet but fastq is given
 if (!params.samplesheet && params.fastq) {
-// If NOT samplesheet (std panel run), set sampleID == NPN_PANEL_SUBPANEL
-
-    params.reads="${params.fastq}/${reads_pattern_fastq}"
-    //params.reads="${params.fastq}/*{.,_,-}{R1,R2}*.gz"
-/*
- Channel
-    .fromFilePairs(params.reads, checkIfExists: true)
-    .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
-//    .map { it -> [it[0]+"_"+params.panel+"_"+params.genome, file(it[1][0]),file(it[1][1])] }
-    .map { it -> [it[0], file(it[1][0]),file(it[1][1])] }
-    .set { read_pairs_ch }
-
-*/
+    params.reads = "${params.fastq}/${reads_pattern_fastq}"
 
     Channel
-    .fromPath(params.reads, checkIfExists: true)
-    .filter {it =~/R1/}
-    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
-    .set { sampleid_R1}
+        .fromPath(params.reads, checkIfExists: true)
+        .filter { it =~ /R1/ }
+        .map { tuple(it.baseName.tokenize('-').get(0) + "_" + it.baseName.tokenize('-').get(1), it) }
+        .set { sampleid_R1 }
 
     Channel
-    .fromPath(params.reads, checkIfExists: true)
-    .filter {it =~/R2/}
-    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
-    .set { sampleid_R2 }
+        .fromPath(params.reads, checkIfExists: true)
+        .filter { it =~ /R2/ }
+        .map { tuple(it.baseName.tokenize('-').get(0) + "_" + it.baseName.tokenize('-').get(1), it) }
+        .set { sampleid_R2 }
 
-    sampleid_R1.join(sampleid_R2)
-    .set { read_pairs_ch }
-
-
-
+    sampleid_R1.join(sampleid_R2).set { read_pairs_ch }
 }
 
+
+// If samplesheet plus fastq or fastqInput
 if (params.samplesheet && params.fastq || params.fastqInput) {
-// If samplesheet, reduce sampleID to NPN only (no panel/subpanel info!)
     Channel
-    .fromPath(params.reads, checkIfExists: true)
-    .filter {it =~/_R1_/}
-    //.map { tuple(it.baseName.tokenize('-').get(0),it) }
-    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
-    .set { sampleid_R1}
+        .fromPath(params.reads, checkIfExists: true)
+        .filter { it =~ /_R1_/ }
+        .map { tuple(it.baseName.tokenize('-').get(0) + "_" + it.baseName.tokenize('-').get(1), it) }
+        .set { sampleid_R1 }
 
     Channel
-    .fromPath(params.reads, checkIfExists: true)
-    .filter {it =~/_R2_/}
-    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
-    //.map { tuple(it.baseName.tokenize('-').get(0),it) }
-    .set { sampleid_R2 }
+        .fromPath(params.reads, checkIfExists: true)
+        .filter { it =~ /_R2_/ }
+        .map { tuple(it.baseName.tokenize('-').get(0) + "_" + it.baseName.tokenize('-').get(1), it) }
+        .set { sampleid_R2 }
 
-    sampleid_R1.join(sampleid_R2)
-    .set { read_pairs_ch }
-
+    sampleid_R1.join(sampleid_R2).set { read_pairs_ch }
 }
 
 
-// Standard use: Point to fastq for WGS ana
-
-
-
-/*
-if (params.cram && !params.panel) {
-
-    cramfiles="${params.cram}/${reads_pattern_cram}"
-    craifiles="${params.cram}/${reads_pattern_crai}"
+// If CRAM is provided (explicitly or with a panel)
+if (params.cram) {
+    cramfiles = "${params.cram}/${reads_pattern_cram}"
+    craifiles = "${params.cram}/${reads_pattern_crai}"
 
     Channel
-    .fromPath(cramfiles)
-    .map { tuple(it.baseName.tokenize('_').get(0),it) }
-    .set { sampleID_cram }
+        .fromPath(cramfiles)
+        .map { tuple(it.baseName.tokenize('.').get(0), it) }
+        .set { sampleID_cram }
 
     Channel
-    .fromPath(craifiles)
-    .map { tuple(it.baseName.tokenize('_').get(0),it) }
-    .set {sampleID_crai }
-}
-*/
-//if (params.cram && (params.panel || params.samplesheet)) {
-    if (params.cram) { //&& params.panel
-    cramfiles="${params.cram}/${reads_pattern_cram}"
-    craifiles="${params.cram}/${reads_pattern_crai}"
-
-    Channel
-    .fromPath(cramfiles)
-    .map { tuple(it.baseName.tokenize('.').get(0),it) }
-    .set { sampleID_cram }
-
-    Channel
-    .fromPath(craifiles)
-    .map { tuple(it.baseName.tokenize('.').get(0),it) }
-    .set {sampleID_crai }
+        .fromPath(craifiles)
+        .map { tuple(it.baseName.tokenize('.').get(0), it) }
+        .set { sampleID_crai }
 }
 
 
-// If only samplesheet is provided, use CRAM from archive as input (default setup)!
-
+// If only samplesheet is provided, use CRAM from archive (default WGS approach)
 if (params.samplesheet && !params.cram && !params.fastqInput && !params.fastq) {
-    cramfiles="${dataArchive}/{lnx01,lnx02,tank_kga_external_archive}/**/${reads_pattern_cram}"
-    craifiles="${dataArchive}/{lnx01,lnx02,tank_kga_external_archive}/**/${reads_pattern_crai}"
+    cramfiles = "${dataArchive}/{lnx01,lnx02,tank_kga_external_archive}/**/${reads_pattern_cram}"
+    craifiles= "${dataArchive}/{lnx01,lnx02,tank_kga_external_archive}/**/${reads_pattern_crai}"
 
     Channel
-    .fromPath(cramfiles)
-    .map { tuple(it.baseName.tokenize('_').get(0),it) }
-    .set { sampleID_cram }
+        .fromPath(cramfiles)
+        .map { tuple(it.baseName.tokenize('_').get(0), it) }
+        .set { sampleID_cram }
 
     Channel
-    .fromPath(craifiles)
-    .map { tuple(it.baseName.tokenize('_').get(0),it) }
-    .set {sampleID_crai }
+        .fromPath(craifiles)
+        .map { tuple(it.baseName.tokenize('_').get(0), it) }
+        .set { sampleID_crai }
 }
 
 
-////////////////////////////////////////////////////
-///////////// SAMPLESHEET channels /////////////////
-////////////////////////////////////////////////////
+/* ----------------------------------------
+   SAMPLESHEET channels
+   ---------------------------------------- */
 if (params.samplesheet) {
-    channel.fromPath(params.samplesheet)
+    channel
+        .fromPath(params.samplesheet)
         .splitCsv(sep:'\t')
-        .map { row -> tuple(row[1], row[0],row[2],row[3])}
+        .map { row -> tuple(row[1], row[0], row[2], row[3]) }
         .set { full_samplesheet }
-    //above: NPN, caseID, relation, samplestatus
+    // above: NPN, caseID, relation, samplestatus
 
-    channel.fromPath(params.samplesheet)
+    channel
+        .fromPath(params.samplesheet)
         .splitCsv(sep:'\t')
-        .map { row -> row[0]}
+        .map { row -> row[0] }
         .unique()
         .collect()
         .set { caseID_ch }
 
-    channel.fromPath(params.samplesheet)
+    channel
+        .fromPath(params.samplesheet)
         .splitCsv(sep:'\t')
-        .map { row -> tuple(row[0],row[1])}
-        .set {caseID_sampleID}
+        .map { row -> tuple(row[0], row[1]) }
+        .set { caseID_sampleID }
 }
 
 
-////////////////////////////////////////////////////
-///////////// set final input channels   ///////////
-////////////////////////////////////////////////////
-
-
+/* ----------------------------------------
+   FINAL INPUT CHANNELS
+   ---------------------------------------- */
 if (!params.samplesheet && params.fastq) {
-    read_pairs_ch
-    .set { fq_read_input }
+    read_pairs_ch.set { fq_read_input }
 }
 
 if (!params.samplesheet && params.cram) {
-    sampleID_cram.join(sampleID_crai)
-    .set { meta_aln_index }
+    sampleID_cram.join(sampleID_crai).set { meta_aln_index }
 }
 
-if (params.samplesheet && !params.cram && (params.fastqInput||params.fastq)) {
+if (params.samplesheet && !params.cram && (params.fastqInput || params.fastq)) {
     full_samplesheet.join(read_pairs_ch)
-    .map {tuple (it[0]+"_"+it[1]+"_"+it[2],it[4],it[5])}
-    .set { fq_read_input }
+        .map { tuple(it[0] + "_" + it[1] + "_" + it[2], it[4], it[5]) }
+        .set { fq_read_input }
 }
 
 if (params.samplesheet && !params.fastqInput && !params.fastq) {
-
     full_samplesheet.join(sampleID_cram).join(sampleID_crai)
-    .map {tuple (it[0]+"_"+it[1]+"_"+it[2],it[4],it[5])}
-    .set {meta_aln_index}
+        .map { tuple(it[0] + "_" + it[1] + "_" + it[2], it[4], it[5]) }
+        .set { meta_aln_index }
 }
-//////// END: Combine input and samplesheet //////////
 
-///// Haplotypecaller splitintervals channel: /////
-/*
+
+/* ----------------------------------------
+   (Optional) Haplotypecaller intervals
+   ----------------------------------------
 channel
     .fromPath(params.intervals_list)
-    .map { it -> tuple(it.baseName,it)}
+    .map { it -> tuple(it.baseName, it) }
     .set { haplotypecallerIntervalList }
 */
-////////////////////////////////////////////////////
-
-include { 
-         // Symlinks:
-         inputFiles_symlinks_cram;
-         inputFiles_cramCopy;
-         // Preprocess tools:
-         //QC tools
-         samtools;
-         qualimap;
-         fastqc_bam;
-         collectWGSmetrics;
-         multiQC;
-         vntyper_newRef;
-         //subworkflows:
-         SUB_PREPROCESS;
-         SUB_VARIANTCALL;
-         SUB_VARIANTCALL_WGS;
-         SUB_CNV_SV;
-         SUB_STR;
-         SUB_SMN } from "./modules/modules.dna.v1.nf" 
 
 
+/* ----------------------------------------
+   Include DSL2 modules/subworkflows
+   ---------------------------------------- */
+include {
+    // Symlinks:
+    inputFiles_symlinks_cram
+    inputFiles_cramCopy
+    // Preprocess tools:
+    // QC tools
+    samtools
+    qualimap
+    fastqc_bam
+    collectWGSmetrics
+    multiQC
+    vntyper_newRef
+    // subworkflows
+    SUB_PREPROCESS
+    SUB_VARIANTCALL
+    SUB_VARIANTCALL_WGS
+    SUB_CNV_SV
+    SUB_STR
+    SUB_SMN
+} from "./modules/modules.dna.v1.nf"
+
+
+/* ----------------------------------------
+   QC workflow example
+   ---------------------------------------- */
 workflow QC {
-    take: 
-    meta_aln_index
+    take: meta_aln_index
+
     main:
     samtools(meta_aln_index)
-//    qualimap(meta_aln_index)
-//    fastqc_bam(meta_aln_index)
-    multiQC(samtools.out.ifEmpty([]).mix(qualimap.out.ifEmpty([])).mix(fastqc_bam.out.ifEmpty([])).collect())
-
+    // qualimap(meta_aln_index)
+    // fastqc_bam(meta_aln_index)
+    multiQC(
+        samtools.out.ifEmpty([])
+            .mix(qualimap.out.ifEmpty([]))
+            .mix(fastqc_bam.out.ifEmpty([]))
+            .collect()
+    )
 }
 
 
-
+/* ----------------------------------------
+   MAIN WORKFLOW
+   ---------------------------------------- */
 workflow {
 
-    if (!params.panel || params.panel =="WGS_CNV") { 
-
-        if (params.fastqInput||params.fastq) {
+    if (!params.panel || params.panel == "WGS_CNV") {
+        if (params.fastqInput || params.fastq) {
             SUB_PREPROCESS(fq_read_input)
-          
+
             if (!params.preprocessOnly) {
                 if (!params.skipVariants) {
                     SUB_VARIANTCALL_WGS(SUB_PREPROCESS.out.finalAln)
@@ -484,15 +448,13 @@ workflow {
                 if (!params.skipSTR) {
                     SUB_STR(SUB_PREPROCESS.out.finalAln)
                 }
-                
                 if (!params.skipSMN) {
-                SUB_SMN(SUB_PREPROCESS.out.finalAln)
+                    SUB_SMN(SUB_PREPROCESS.out.finalAln)
                 }
             }
         }
-
-        if (!params.fastqInput && !params.fastq) {
-
+        else {
+            // CRAM-based approach
             if (!params.copyCram) {
                 inputFiles_symlinks_cram(meta_aln_index)
 
@@ -506,14 +468,14 @@ workflow {
                     SUB_STR(meta_aln_index)
                 }
                 if (!params.skipSMN) {
-                SUB_SMN(meta_aln_index)
+                    SUB_SMN(meta_aln_index)
                 }
             }
-
-            if (params.copyCram) {
+            else {
+                // If copying CRAM
                 inputFiles_symlinks_cram(meta_aln_index)
                 inputFiles_cramCopy(meta_aln_index)
-            
+
                 if (!params.skipVariants) {
                     SUB_VARIANTCALL_WGS(inputFiles_cramCopy.out)
                 }
@@ -530,18 +492,18 @@ workflow {
         }
     }
 
-    if (params.panel && params.panel!="WGS_CNV") {
-
-        if (params.fastqInput||params.fastq) {
+    // Panel logic (not WGS_CNV)
+    if (params.panel && params.panel != "WGS_CNV") {
+        if (params.fastqInput || params.fastq) {
             SUB_PREPROCESS(fq_read_input)
             SUB_VARIANTCALL(SUB_PREPROCESS.out.finalAln)
 
-            if (params.panel=="MV1") {
+            if (params.panel == "MV1") {
                 vntyper_newRef(fq_read_input)
             }
         }
-
-        if (!params.fastqInput && !params.fastq) {
+        else {
+            // CRAM-based panel
             inputFiles_symlinks_cram(meta_aln_index)
             SUB_VARIANTCALL(meta_aln_index)
         }
@@ -549,6 +511,21 @@ workflow {
 }
 
 
+/* ----------------------------------------
+   COLLECT SAMPLE NAMES FROM caseID_ch
+   ---------------------------------------- */
+def sampleNamesList = []
+
+// Because we used `.collect()` in the samplesheet definition,
+// `caseID_ch` will emit a single ArrayList of sample IDs once it closes.
+caseID_ch.subscribe { allSampleIDs ->
+    sampleNamesList = allSampleIDs
+}
+
+
+/* ----------------------------------------
+   WORKFLOW ON COMPLETE
+   ---------------------------------------- */
 workflow.onComplete {
     // Determine the current year dynamically
     def currentYear = new Date().format('yyyy')
@@ -565,15 +542,21 @@ workflow.onComplete {
         return
     }
 
-    // Collect sample names from the channel (ensure the channel is tapped earlier so it can be collected)
-    def sampleNamesList = caseID_ch.collect().getVal()
+    // Turn the collected sample list into a comma‐separated string
     def sampleNamesString = sampleNamesList.join(', ')
 
-    // Only send email if --nomail is not specified, the user is mmaj or raspau, and duration is longer than 5 minutes / 300000 milliseconds
+    // Only send email if:
+    // --nomail is not specified,
+    // user is mmaj or raspau,
+    // pipeline ran more than 5 minutes (300000 ms),
+    // and pipeline succeeded
     if (!params.nomail && workflow.duration > 300000 && workflow.success) {
         if (System.getenv("USER") in ["raspau", "mmaj"]) {
-            def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
-                               params.fastq ? new File(params.fastq).getName().take(6) : 'Not provided'
+            def sequencingRun = params.cram
+                ? new File(params.cram).getName().take(6)
+                : params.fastq
+                    ? new File(params.fastq).getName().take(6)
+                    : 'Not provided'
 
             // Checks if there are OBS samples in the cram folder
             def obsSampleMessage = ""
@@ -586,9 +569,7 @@ workflow.onComplete {
             }
 
             def workDirMessage = params.keepwork ? "WorkDir: ${workflow.workDir}" : "WorkDir: Deleted"
-
-            // Correctly set the outputDir
-            def outputDir = "${launchDir}/${launchDir.baseName}.Results"
+            def outputDir      = "${launchDir}/${launchDir.baseName}.Results"
 
             def body = """\
             Pipeline execution summary
@@ -611,7 +592,8 @@ workflow.onComplete {
             if (params.server == 'lnx01') {
                 // Use Nextflow's built-in sendMail function when on lnx01
                 sendMail(to: recipients, subject: 'GermlineNGS pipeline Update', body: body)
-            } else if (params.server == 'lnx02') {
+            }
+            else if (params.server == 'lnx02') {
                 // Use external command to send email from lnx02
                 def emailCommand = "ssh ${ip} 'echo \"${body}\" | mail -s \"GermlineNGS pipeline Update\" ${recipients}'"
                 def emailProcess = ['bash', '-c', emailCommand].execute()
@@ -623,7 +605,7 @@ workflow.onComplete {
                 }
             }
 
-            // Delete work directory if not keeping it
+            // If not keeping work, delete it
             if (!params.keepwork) {
                 println("Deleting work directory: ${workflow.workDir}")
                 def deleteWorkDirCommand = "rm -rf ${workflow.workDir}".execute()
@@ -633,7 +615,7 @@ workflow.onComplete {
                 }
             }
 
-            // Move WGS_CNV from lnx02 to lnx01
+            // Move WGS_CNV from lnx02 to lnx01 if success
             if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
                 def moveWGSCNVCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
                 def moveWGSCNVProcess = ['bash', '-c', moveWGSCNVCommand].execute()
@@ -643,7 +625,7 @@ workflow.onComplete {
                 }
             }
 
-            // Move WES from lnx02 to lnx01
+            // Move WES from lnx02 to lnx01 if success
             if (params.server == 'lnx02' && params.panel == 'WES' && workflow.success) {
                 def moveWESCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WES_ALM_ONK/${currentYear}/"
                 def moveWESProcess = ['bash', '-c', moveWESCommand].execute()

@@ -606,7 +606,7 @@ workflow.onComplete {
             ${sampleNamesString}
             """.stripIndent()
 
-            def recipients = 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk'
+            def recipients = 'Rasmus.Hojrup.Pausgaard@rsyd.dk'
 
             if (params.server == 'lnx01') {
                 // Use Nextflow's built-in sendMail function when on lnx01

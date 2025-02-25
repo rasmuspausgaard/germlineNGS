@@ -454,21 +454,21 @@ workflow.onComplete {
             def workDirMessage = params.keepwork ? "WorkDir: ${workflow.workDir}" : "WorkDir: Deleted"
             def outputDir = "${launchDir}/${launchDir.baseName}.Results"
 
-            def body = """\
-            Pipeline execution summary
-            ---------------------------
-            Pipeline completed: ${params.panel}
-            Sequencing run: ${sequencingRun}${obsSampleMessage}
-            Duration: ${workflow.duration}
-            Success: ${workflow.success}
-            ${workDirMessage}
-            OutputDir: ${outputDir}
-            Exit status: ${workflow.exitStatus}
-            ${obsSampleMessage}
+            def body = """|Pipeline execution summary
+            |---------------------------
+            |Pipeline completed: ${params.panel}
+            |Sequencing run: ${sequencingRun}${obsSampleMessage}
+            |Duration: ${workflow.duration}
+            |Success: ${workflow.success}
+            |${workDirMessage}
+            |OutputDir: ${outputDir}
+            |Exit status: ${workflow.exitStatus}
+            |${obsSampleMessage}
+            |
+            |Samples included in the pipeline:
+            |${sampleNamesString}
+            """.stripMargin('|')
 
-            Samples included in the pipeline:
-            ${sampleNamesString}
-            """.stripIndent()
 
             // Example recipients
             def recipients = 'Rasmus.Hojrup.Pausgaard@rsyd.dk'

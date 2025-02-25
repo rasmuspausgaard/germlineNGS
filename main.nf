@@ -428,7 +428,7 @@ workflow.onComplete {
     }
 
     // Build the sample names string
-    def sampleNamesString = sampleNamesList.join(', ')
+    def sampleNamesString = sampleNamesList.join('\n')
 
     // Email conditions: pipeline success, duration > 5 minutes(300000), user is "mmaj" or "raspau", etc.
     if (!params.nomail && workflow.success && workflow.duration > 3) {

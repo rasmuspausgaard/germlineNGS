@@ -430,8 +430,8 @@ workflow.onComplete {
     // Build the sample names string
     def sampleNamesString = sampleNamesList.join(', ')
 
-    // Email conditions: pipeline success, duration > 5 minutes, user is "mmaj" or "raspau", etc.
-    if (!params.nomail && workflow.success && workflow.duration > 300000) {
+    // Email conditions: pipeline success, duration > 5 minutes(300000), user is "mmaj" or "raspau", etc.
+    if (!params.nomail && workflow.success && workflow.duration > 3) {
         if (user in ["mmaj", "raspau"]) {
 
             // Example: derive "sequencingRun" from the CRAM folder name

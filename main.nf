@@ -309,11 +309,11 @@ workflow QC {
    ----------------------------------------------------------------- */
 workflow {
     /*
-     * Panel logic for WGS_CNV, or if panel is null => WGS,
+     * Panel logic for WGS_CNV, NGC, or if panel is null => WGS,
      * or if panel is set => do subworkflow for that panel, etc.
      */
 
-    if (!params.panel || params.panel == "WGS_CNV") {
+    if (!params.panel || params.panel == 'WGS_CNV' || params.panel == 'NGC') {
         // If we have FASTQ input
         if (params.fastqInput || params.fastq) {
             // Align FASTQ => CRAM
@@ -375,7 +375,7 @@ workflow {
         }
     }
 
-    if (params.panel && params.panel != "WGS_CNV") {
+    if (params.panel && params.panel != "WGS_CNV" || params.panel != 'NGC') {
         // Panel logic
         if (params.fastqInput || params.fastq) {
             SUB_PREPROCESS(read_pairs_ch)
@@ -497,6 +497,16 @@ workflow.onComplete {
                 moveWGSCNVProcess.waitFor()
                 if (moveWGSCNVProcess.exitValue() != 0) {
                     println("Error moving WGS_CNV files: ${moveWGSCNVProcess.err.text}")
+                }
+            }
+
+            // Move WGS_NGC from lnx02 to lnx01 if success
+            if (params.server == 'lnx02' && params.panel == 'NGC' && workflow.success) {
+                def moveWGSNGCCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WGS_NGC/${currentYear}/"
+                def moveWGSNGCProcess = ['bash', '-c', moveWGSNGCCommand].execute()
+                moveWGSNGCProcess.waitFor()
+                if (moveWGSNGCProcess.exitValue() != 0) {
+                    println("Error moving WGS_NGC files: ${moveWGSNGCProcess.err.text}")
                 }
             }
 

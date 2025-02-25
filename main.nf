@@ -552,11 +552,10 @@ workflow {
 workflow.onComplete {
     // Determine the current year dynamically
     def currentYear = new Date().format('yyyy')
-    
+
     // Read IP address from file
     def ipFilePath = '/lnx01_data2/shared/testdata/test_scripts/ip_file'
     def ip = ""
-
     if (new File(ipFilePath).exists()) {
         println("IP file exists. Reading IP address.")
         ip = new File(ipFilePath).text.trim()
@@ -565,6 +564,10 @@ workflow.onComplete {
         println("Error: IP address file not found at ${ipFilePath}")
         return
     }
+
+    // Collect sample names from the channel (ensure the channel is tapped earlier so it can be collected)
+    def sampleNamesList = caseID_ch.collect().getVal()
+    def sampleNamesString = sampleNamesList.join(', ')
 
     // Only send email if --nomail is not specified, the user is mmaj or raspau, and duration is longer than 5 minutes / 300000 milliseconds
     if (!params.nomail && workflow.duration > 300000 && workflow.success) {
@@ -598,21 +601,21 @@ workflow.onComplete {
             OutputDir: ${outputDir}
             Exit status: ${workflow.exitStatus}
             ${obsSampleMessage}
+
+            Samples included in the pipeline:
+            ${sampleNamesString}
             """.stripIndent()
 
-            // Construct the email sending command
-            def subject = 'GermlineNGS pipeline Update'
             def recipients = 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk'
 
             if (params.server == 'lnx01') {
                 // Use Nextflow's built-in sendMail function when on lnx01
-                sendMail(to: recipients, subject: subject, body: body)
+                sendMail(to: recipients, subject: 'GermlineNGS pipeline Update', body: body)
             } else if (params.server == 'lnx02') {
                 // Use external command to send email from lnx02
-                def emailCommand = "ssh ${ip} 'echo \"${body}\" | mail -s \"${subject}\" ${recipients}'"
+                def emailCommand = "ssh ${ip} 'echo \"${body}\" | mail -s \"GermlineNGS pipeline Update\" ${recipients}'"
                 def emailProcess = ['bash', '-c', emailCommand].execute()
                 emailProcess.waitFor()
-
                 if (emailProcess.exitValue() != 0) {
                     println("Error sending email from remote server: ${emailProcess.err.text}")
                 } else {
@@ -620,9 +623,8 @@ workflow.onComplete {
                 }
             }
 
-            // Check if --keepwork was specified
+            // Delete work directory if not keeping it
             if (!params.keepwork) {
-                // If --keepwork was not specified, delete the work directory
                 println("Deleting work directory: ${workflow.workDir}")
                 def deleteWorkDirCommand = "rm -rf ${workflow.workDir}".execute()
                 deleteWorkDirCommand.waitFor()
@@ -631,15 +633,14 @@ workflow.onComplete {
                 }
             }
 
-            // Move WGS.CNV from lnx02 to lnx01
+            // Move WGS_CNV from lnx02 to lnx01
             if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
                 def moveWGSCNVCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
                 def moveWGSCNVProcess = ['bash', '-c', moveWGSCNVCommand].execute()
                 moveWGSCNVProcess.waitFor()
-
                 if (moveWGSCNVProcess.exitValue() != 0) {
                     println("Error moving WGS_CNV files: ${moveWGSCNVProcess.err.text}")
-                } 
+                }
             }
 
             // Move WES from lnx02 to lnx01
@@ -647,34 +648,10 @@ workflow.onComplete {
                 def moveWESCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WES_ALM_ONK/${currentYear}/"
                 def moveWESProcess = ['bash', '-c', moveWESCommand].execute()
                 moveWESProcess.waitFor()
-
                 if (moveWESProcess.exitValue() != 0) {
                     println("Error moving WES files: ${moveWESProcess.err.text}")
                 }
             }
         }
     }
-}
-
-
-
-workflow.onError {
-    // Custom message to be sent when the workflow completes
-    def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
-                   params.fastq ? new File(params.fastq).getName().take(6) : 'Not provided'
-
-    def body = """\
-    Pipeline execution summary
-    ---------------------------
-    Pipeline completed  : ${params.panel}
-    Sequencing run      : ${sequencingRun}
-    Duration            : ${workflow.duration}
-    Failed              : ${workflow.failed}
-    WorkDir             : ${workflow.workDir}
-    Exit status         : ${workflow.exitStatus}
-    """.stripIndent()
-
-    // Send the email using the built-in sendMail function
-    sendMail(to: 'Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk', subject: 'Pipeline Update', body: body)
-
 }

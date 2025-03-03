@@ -319,18 +319,17 @@ process calcMeanDepth {
     tag "$sampleID"
 
     input:
-        tuple val(sampleID), file(cram), file(crai) \
-            from meta_aln_index_for_calcMeanDepth
+        tuple val(sampleID), file(cram), file(crai)
 
     output:
-        tuple val(sampleID), file("mean_depth.txt") \
-            into meanDepthChannel
+        tuple val(sampleID), file("mean_depth.txt")
 
     script:
     """
     samtools depth -a ${cram} | awk '{sum += \$3} END {if (NR>0) print sum/NR; else print 0}' > mean_depth.txt
     """
 }
+
 
 /* -----------------------------------------------------------------
    DEFINE A GLOBAL VARIABLE FOR MEAN DEPTH

@@ -303,6 +303,21 @@ workflow QC {
     )
 }
 
+/* -----------------------------------------------------------------
+   calculating depth
+   ----------------------------------------------------------------- */
+process calcMeanDepth {
+    tag "$sampleID"
+    input:
+        tuple val(sampleID), file(cram), file(crai)
+    output:
+        tuple val(sampleID), file("mean_depth.txt")
+    script:
+    """
+    samtools depth -a ${cram} | awk '{sum += \$3} END {if (NR>0) print sum/NR; else print 0}' > mean_depth.txt
+    """
+}
+
 
 /* -----------------------------------------------------------------
    MAIN WORKFLOW
@@ -312,6 +327,23 @@ workflow {
      * Panel logic for WGS_CNV, NGC, or if panel is null => WGS,
      * or if panel is set => do subworkflow for that panel, etc.
      */
+
+   // Calculate mean depth for each sample in parallel
+   calcMeanDepth(meta_aln_index)
+    .set { meanDepthChannel }
+
+
+   def meanDepthSummary = ""
+   if (params.cram) {
+       meanDepthChannel.collect().subscribe { results ->
+           meanDepthSummary = results.collect { sample, depthFile ->
+               def depth = depthFile.text.trim()
+               return "${sample}: ${depth}X"
+           }.join('\n')
+       }
+   }
+
+
 
     if (!params.panel || params.panel == 'WGS_CNV' || params.panel == 'NGC') {
         // If we have FASTQ input
@@ -454,20 +486,23 @@ workflow.onComplete {
             def workDirMessage = params.keepwork ? "WorkDir: ${workflow.workDir}" : "WorkDir: Deleted"
             def outputDir = "${launchDir}/${launchDir.baseName}.Results"
 
-            def body = """|Pipeline execution summary
-            |---------------------------
-            |Pipeline completed: ${params.panel}
-            |Sequencing run: ${sequencingRun}${obsSampleMessage}
-            |Duration: ${workflow.duration}
-            |Success: ${workflow.success}
-            |${workDirMessage}
-            |OutputDir: ${outputDir}
-            |Exit status: ${workflow.exitStatus}
-            |${obsSampleMessage}
-            |
-            |Samples included in the pipeline:
-            |${sampleNamesString}
-            """.stripMargin('|')
+def body = """|Pipeline execution summary
+              |---------------------------
+              |Pipeline completed: ${params.panel}
+              |Sequencing run: ${sequencingRun}${obsSampleMessage}
+              |Duration: ${workflow.duration}
+              |Success: ${workflow.success}
+              |WorkDir: ${params.keepwork ? workflow.workDir : 'Deleted'}
+              |OutputDir: ${outputDir}
+              |Exit status: ${workflow.exitStatus}
+              |
+              |Samples included in the pipeline:
+              |${sampleNamesString}
+              |
+              |Mean Depth per Sample:
+              |${meanDepthSummary}
+              """.stripMargin('|')
+
 
 
             // Example recipients

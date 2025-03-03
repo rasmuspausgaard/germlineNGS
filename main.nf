@@ -344,7 +344,7 @@ workflow {
 
     // Calculate mean depth for each sample in parallel
     calcMeanDepth(meta_aln_index_for_calcMeanDepth)
-        .set { meanDepthChannel }
+       .set { meanDepthChannel }
 
     // Subscribe to meanDepthChannel and fill the global meanDepthSummary
     if (params.cram) {

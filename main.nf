@@ -204,6 +204,15 @@ if (params.cram) {
     // Join CRAM + CRAI => meta_aln_index
     sampleID_cram.join(sampleID_crai)
         .set { meta_aln_index }
+
+   Channel
+    .from(meta_aln_index)
+    .map { sampleID1, cramFile, sampleID2, craiFile ->
+        // Return only (sampleID1, cramFile, craiFile)
+        tuple(sampleID1, cramFile, craiFile)
+    }
+    .set { meta_aln_index_for_calcMeanDepth }
+
 }
 
 /** 2) FASTQ handling **/
@@ -334,7 +343,7 @@ workflow {
      */
 
     // Calculate mean depth for each sample in parallel
-    calcMeanDepth(meta_aln_index)
+    calcMeanDepth(meta_aln_index_for_calcMeanDepth)
         .set { meanDepthChannel }
 
     // Subscribe to meanDepthChannel and fill the global meanDepthSummary

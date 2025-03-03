@@ -1,4 +1,3 @@
-can you please fix this:
 #!/usr/bin/env nextflow
 nextflow.enable.dsl = 2
 

@@ -317,10 +317,15 @@ workflow QC {
    ----------------------------------------------------------------- */
 process calcMeanDepth {
     tag "$sampleID"
+
     input:
-        tuple val(sampleID), file(cram), file(crai)
+        tuple val(sampleID), file(cram), file(crai) \
+            from meta_aln_index_for_calcMeanDepth
+
     output:
-        tuple val(sampleID), file("mean_depth.txt")
+        tuple val(sampleID), file("mean_depth.txt") \
+            into meanDepthChannel
+
     script:
     """
     samtools depth -a ${cram} | awk '{sum += \$3} END {if (NR>0) print sum/NR; else print 0}' > mean_depth.txt
@@ -343,18 +348,17 @@ workflow {
      */
 
     // Calculate mean depth for each sample in parallel
-    calcMeanDepth(meta_aln_index_for_calcMeanDepth)
+   calcMeanDepth(meta_aln_index_for_calcMeanDepth)
        .set { meanDepthChannel }
 
     // Subscribe to meanDepthChannel and fill the global meanDepthSummary
-    if (params.cram) {
-        meanDepthChannel.collect().subscribe { results ->
-            meanDepthSummary = results.collect { sample, depthFile ->
-                def depth = depthFile.text.trim()
-                return "${sample}: ${depth}X"
-            }.join('\n')
-        }
-    }
+   meanDepthChannel.collect().subscribe { results ->
+       meanDepthSummary = results.collect { sample, depthFile ->
+           def depth = depthFile.text.trim()
+           return "${sample}: ${depth}X"
+       }.join('\n')
+   }
+    
 
     if (!params.panel || params.panel == 'WGS_CNV' || params.panel == 'NGC') {
         // If we have FASTQ input

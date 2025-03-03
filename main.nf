@@ -437,24 +437,27 @@ if (params.samplesheet && !params.fastqInput && !params.fastq) {
     .set {meta_aln_index}
 }
 
-////////////// mean depth /////////////
 
-// A global variable to store mean depth results
-def meanDepthSummary = ''
-
+// mean depth
+// 1) Flatten meta_aln_index -> (sampleID, cramFile)
+//
 Channel
-    .copy(sampleID_cram)
-    .set { sampleID_cram_forDepth }
+    .from(meta_aln_index)
+    .map { sampleID1, cramFile, sampleID2, craiFile ->
+        tuple(sampleID1, cramFile)
+    }
+    .set { meta_aln_index_depth }
 
+//
+// 2) The calcMeanDepth process
+//
 process calcMeanDepth {
     tag "$sampleID"
 
     input:
-        // We'll read from the fresh copy channel
-        tuple val(sampleID), file(cramFile) from sampleID_cram_forDepth
+        tuple val(sampleID), file(cramFile) from meta_aln_index_depth
 
     output:
-        // Emit (sampleID, mean_depth.txt) into a new channel
         tuple val(sampleID), file("mean_depth.txt") into meanDepthChannel
 
     script:
@@ -463,14 +466,17 @@ process calcMeanDepth {
     """
 }
 
+//
+// 3) Collect results
+//
+def meanDepthSummary = ''
+
 meanDepthChannel.collect().subscribe { results ->
     meanDepthSummary = results.collect { sampleID, depthFile ->
-        // Read the numeric depth from mean_depth.txt
         def depthVal = depthFile.text.trim()
         return "${sampleID}: ${depthVal}X"
     }.join('\n')
 }
-
 
 //////// END: Combine input and samplesheet //////////
 

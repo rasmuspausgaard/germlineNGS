@@ -455,28 +455,18 @@ process calcMeanDepth {
     tag "$sampleID"
 
     input:
-        tuple val(sampleID), file(cramFile) from meta_aln_index_depth
+        tuple val(sampleID), file(cramFile)
 
     output:
-        tuple val(sampleID), file("mean_depth.txt") into meanDepthChannel
+        tuple val(sampleID), file("mean_depth.txt")
 
     script:
     """
-    samtools depth -a ${cramFile} | awk '{sum += \$3} END {if (NR>0) print sum/NR; else print 0}' > mean_depth.txt
+    samtools depth -a ${cramFile} \\
+      | awk '{sum += \$3} END {if (NR>0) print sum/NR; else print 0}' > mean_depth.txt
     """
 }
 
-//
-// 3) Collect results
-//
-def meanDepthSummary = ''
-
-meanDepthChannel.collect().subscribe { results ->
-    meanDepthSummary = results.collect { sampleID, depthFile ->
-        def depthVal = depthFile.text.trim()
-        return "${sampleID}: ${depthVal}X"
-    }.join('\n')
-}
 
 //////// END: Combine input and samplesheet //////////
 
@@ -719,6 +709,19 @@ workflow {
             }
 
             if (params.copyCram) {
+                // 1) Function-call style: pass meta_aln_index_depth
+                    calcMeanDepth(meta_aln_index_depth)
+                        .set { meanDepthChannel }
+                
+                // 2) Collect results to build a summary
+                def meanDepthSummary = ''
+                meanDepthChannel.collect().subscribe { results ->
+                    meanDepthSummary = results.collect { sampleID, depthFile ->
+                        def depthVal = depthFile.text.trim()
+                        return "${sampleID}: ${depthVal}X"
+                    }.join('\n')
+                }
+
                 inputFiles_symlinks_cram(meta_aln_index)
                 inputFiles_cramCopy(meta_aln_index)
             

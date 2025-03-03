@@ -341,17 +341,10 @@ def meanDepthSummary = ''
    MAIN WORKFLOW
    ----------------------------------------------------------------- */
 workflow {
-    /*
-     * Panel logic for WGS_CNV, NGC, or if panel is null => WGS,
-     * or if panel is set => do subworkflow for that panel, etc.
-     */
+    calcMeanDepth(meta_aln_index_for_calcMeanDepth)
+        .set { meanDepthChannel }
 
-    // Calculate mean depth for each sample in parallel
-   calcMeanDepth(meta_aln_index_for_calcMeanDepth)
-       .set { meanDepthChannel }
-
-    // Subscribe to meanDepthChannel and fill the global meanDepthSummary
-   meanDepthChannel.collect().subscribe { results ->
+    meanDepthChannel.collect().subscribe { results ->
        meanDepthSummary = results.collect { sample, depthFile ->
            def depth = depthFile.text.trim()
            return "${sample}: ${depth}X"

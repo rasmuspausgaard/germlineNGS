@@ -417,16 +417,16 @@ if (params.cram) {
 
 process calculateCoverage {
     input:
-        tuple val(npn), path(cramFile), path(craiFile)
+        tuple val(sampleID), path(cramFile), path(craiFile)
 
-    tag { npn }
+    tag { sampleID }
 
     output:
-        tuple val(npn), stdout, emit: coverageChan
+        tuple val(sampleID), stdout, emit: coverageChan
 
     script:
         """
-        npn='${npn}'
+        sampleID='${sampleID}'
         cram='${cramFile}'
         crai='${craiFile}'
         ref='${params.reference}'
@@ -436,7 +436,7 @@ process calculateCoverage {
             samtools index "\${cram}"
         fi
 
-        prefix="\${npn}_mosdepth"
+        prefix="\${sampleID}_mosdepth"
         singularity run -B /data/:/data/,/lnx01_data2/:/lnx01_data2/ \\
           /lnx01_data2/shared/testdata/mosdepth.sif \\
           mosdepth -n --fast-mode -t 4 --fasta "\${ref}" \\
@@ -456,14 +456,10 @@ def coverageList = []
 
 // Only do this if we have CRAM input
 if (params.cram) {
-    // CoverageChan emits (sampleID, coverage)
-    // We'll map to just sampleID, collect them all, and store in sampleNamesList
-    coverageChan
-    .subscribe { result ->
-        // result is [ npn, coverageValueFromStdout ]
-        coverageList << result
-        println "Coverage for ${result[0]} => ${result[1]}"
-    }
+   coverageChan.subscribe { result ->
+    // result is [ sampleID, coverageValue ]
+    coverageList << result
+    println "Coverage for ${result[0]} => ${result[1]}"
 }
 /* -----------------------------------------------------------------
    ON COMPLETE: send email with sample names, etc.

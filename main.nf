@@ -385,11 +385,11 @@ workflow {
                 }
             }
             // COVERAGE CALCULATION
-            def coverageResults = doMosdepthCoverage(meta_aln_index)
+            /*def coverageResults = doMosdepthCoverage(meta_aln_index)
             coverageResults.subscribe { result ->
                 coverageList << result
                 println "Coverage for sample '${result[0]}': ${result[1]}"
-            }
+            }*/
         }
     } // End of first if-block
 

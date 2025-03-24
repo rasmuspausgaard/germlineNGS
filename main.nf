@@ -206,6 +206,7 @@ if (params.cram) {
         .set { meta_aln_index }
    def joinedFiles = sampleID_cram.join(sampleID_crai)
 }
+def coverageList = []
 
 /** 2) FASTQ handling **/
 if (params.fastq) {
@@ -337,17 +338,18 @@ workflow {
             }
         }
         // If we have CRAM input
-        else if (params.cram) {
-            def coverageResults = calculateCoverage(joinedFiles)
-            coverageResults.subscribe { result ->
-               // Each 'result' is [NPN, coverageValue]
-               coverageList << result
-               println "Coverage for sample '${result[0]}': ${result[1]}"
-            }      
+        else if (params.cram) {      
             if (!params.copyCram) {
                 // Symlink CRAM
                 inputFiles_symlinks_cram(meta_aln_index)
+                def coverageResults = calculateCoverage(joinedFiles)
 
+                // Subscribe to coverageResults and store in coverageList
+                coverageResults.subscribe { result ->
+                    // Each 'result' is [NPN, coverageValue]
+                    coverageList << result
+                    println "Coverage for sample '${result[0]}': ${result[1]}"
+                }
                 if (!params.skipVariants) {
                     SUB_VARIANTCALL_WGS(meta_aln_index)
                 }
@@ -365,7 +367,14 @@ workflow {
                 // Physically copy CRAM
                 inputFiles_symlinks_cram(meta_aln_index)
                 inputFiles_cramCopy(meta_aln_index)
+                def coverageResults = calculateCoverage(joinedFiles)
 
+                // Subscribe to coverageResults and store in coverageList
+                coverageResults.subscribe { result ->
+                    // Each 'result' is [NPN, coverageValue]
+                    coverageList << result
+                    println "Coverage for sample '${result[0]}': ${result[1]}"
+                }
                 if (!params.skipVariants) {
                     SUB_VARIANTCALL_WGS(inputFiles_cramCopy.out)
                 }

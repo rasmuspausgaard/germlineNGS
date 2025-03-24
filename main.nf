@@ -257,18 +257,18 @@ include {
    PROCESS: coverage (mosdepth)
    Takes [sampleID, cramFile, craiFile] => outputs [sampleID, coverageValue]
    ----------------------------------------------------------------- */
-process calculateCoverage {
+process doMosdepthCoverage {
     input:
-        tuple val(npn), path(cramFile), path(craiFile)
+        tuple val(sampleID), path(cramFile), path(craiFile)
 
-    tag { npn }
+    tag {sampleID}
 
     output:
-        tuple val(npn), stdout
+        tuple val(sampleID), stdout
 
     script:
         """
-        npn='${npn}'
+        sampleID='${sampleID}'
         cram='${cramFile}'
         crai='${craiFile}'
         ref='${params.reference}'
@@ -278,7 +278,7 @@ process calculateCoverage {
             samtools index "\${cram}"
         fi
 
-        prefix="\${npn}_mosdepth"
+        prefix="\${sampleID}_mosdepth"
         singularity run -B /data/:/data/,/lnx01_data2/:/lnx01_data2/ \\
           /lnx01_data2/shared/testdata/mosdepth.sif \\
           mosdepth -n --fast-mode -t 4 --fasta "\${ref}" \\
@@ -385,7 +385,7 @@ workflow {
                 }
             }
             // COVERAGE CALCULATION
-            def coverageResults = calculateCoverage(meta_aln_index)
+            def coverageResults = doMosdepthCoverage(meta_aln_index)
             coverageResults.subscribe { result ->
                 coverageList << result
                 println "Coverage for sample '${result[0]}': ${result[1]}"

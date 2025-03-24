@@ -310,9 +310,11 @@ workflow QC {
 def coverageList = []
 
 workflow {
+    // First block: run if panel is null or panel == 'WGS_CNV' or panel == 'NGC'
     if (!params.panel || params.panel == 'WGS_CNV' || params.panel == 'NGC') {
+
+        // If we have FASTQ input
         if (params.fastqInput || params.fastq) {
-            // FASTQ => CRAM logic
             SUB_PREPROCESS(read_pairs_ch)
             if (!params.preprocessOnly) {
                 if (!params.skipVariants) {
@@ -329,8 +331,8 @@ workflow {
                 }
             }
         }
+        // Otherwise CRAM-based input
         else if (params.cram) {
-            // CRAM-based logic
             if (!params.copyCram) {
                 inputFiles_symlinks_cram(meta_aln_index)
                 if (!params.skipVariants) {
@@ -369,10 +371,10 @@ workflow {
                 println "Coverage for sample '${result[0]}': ${result[1]}"
             }
         }
-    }
+    } // <--- End of first if-block
 
-    // Additional panel logic
-    if (params.panel && params.panel != "WGS_CNV" || params.panel != 'NGC') {
+    // Second block: run if panel is set, not 'WGS_CNV', and not 'NGC'
+    if (params.panel && params.panel != "WGS_CNV" && params.panel != "NGC") {
         if (params.fastqInput || params.fastq) {
             SUB_PREPROCESS(read_pairs_ch)
             SUB_VARIANTCALL(SUB_PREPROCESS.out.finalAln)
@@ -384,8 +386,8 @@ workflow {
             inputFiles_symlinks_cram(meta_aln_index)
             SUB_VARIANTCALL(meta_aln_index)
         }
-    }
-}
+    } // <--- End of second if-block
+} // <--- End of workflow
 
 /* -----------------------------------------------------------------
    PROCESS: coverage (mosdepth)

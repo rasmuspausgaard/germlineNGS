@@ -309,6 +309,7 @@ workflow QC {
 /* -----------------------------------------------------------------
    MAIN WORKFLOW
    ----------------------------------------------------------------- */
+
 workflow {
     /*
      * Panel logic for WGS_CNV, NGC, or if panel is null => WGS,
@@ -342,14 +343,8 @@ workflow {
             if (!params.copyCram) {
                 // Symlink CRAM
                 inputFiles_symlinks_cram(meta_aln_index)
-                def coverageResults = calculateCoverage(joinedFiles)
+                calculateCoverage(meta_aln_index)
 
-                // Subscribe to coverageResults and store in coverageList
-                coverageResults.subscribe { result ->
-                    // Each 'result' is [NPN, coverageValue]
-                    coverageList << result
-                    println "Coverage for sample '${result[0]}': ${result[1]}"
-                }
                 if (!params.skipVariants) {
                     SUB_VARIANTCALL_WGS(meta_aln_index)
                 }
@@ -367,14 +362,8 @@ workflow {
                 // Physically copy CRAM
                 inputFiles_symlinks_cram(meta_aln_index)
                 inputFiles_cramCopy(meta_aln_index)
-                def coverageResults = calculateCoverage(joinedFiles)
+                calculateCoverage(meta_aln_index)
 
-                // Subscribe to coverageResults and store in coverageList
-                coverageResults.subscribe { result ->
-                    // Each 'result' is [NPN, coverageValue]
-                    coverageList << result
-                    println "Coverage for sample '${result[0]}': ${result[1]}"
-                }
                 if (!params.skipVariants) {
                     SUB_VARIANTCALL_WGS(inputFiles_cramCopy.out)
                 }
@@ -433,7 +422,7 @@ process calculateCoverage {
     tag { npn }
 
     output:
-        tuple val(npn), stdout
+        tuple val(npn), stdout, emit: coverageChan
 
     script:
         """
@@ -461,6 +450,21 @@ process calculateCoverage {
         fi
         """
 }
+
+
+def coverageList = []
+
+// Only do this if we have CRAM input
+if (params.cram) {
+    // CoverageChan emits (sampleID, coverage)
+    // We'll map to just sampleID, collect them all, and store in sampleNamesList
+    coverageChan
+    .subscribe { result ->
+        // result is [ npn, coverageValueFromStdout ]
+        coverageList << result
+        println "Coverage for ${result[0]} => ${result[1]}"
+    }
+}
 /* -----------------------------------------------------------------
    ON COMPLETE: send email with sample names, etc.
    ----------------------------------------------------------------- */
@@ -486,6 +490,7 @@ workflow.onComplete {
 
     // Build the sample names string
     def sampleNamesString = sampleNamesList.join('\n')
+    def sampleCoverageString = coverageList.join('\n')
 
     // Email conditions: pipeline success, duration > 5 minutes(300000), user is "mmaj" or "raspau", etc.
     if (!params.nomail && workflow.success && workflow.duration > 3) {
@@ -524,7 +529,7 @@ workflow.onComplete {
             |
             |Samples included in the pipeline:
             |${sampleNamesString}
-            |${coverageSummary}
+            |${sampleCoverageString}
             """.stripMargin('|')
 
 

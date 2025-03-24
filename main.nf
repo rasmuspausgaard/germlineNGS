@@ -456,11 +456,12 @@ def coverageList = []
 
 // Only do this if we have CRAM input
 if (params.cram) {
-   coverageChan.subscribe { result ->
-    // result is [ sampleID, coverageValue ]
-    coverageList << result
-    println "Coverage for ${result[0]} => ${result[1]}"
-}
+    coverageChan.subscribe { result ->
+        // result is [ sampleID, coverageValue ]
+        coverageList << result
+        println "Coverage for ${result[0]} => ${result[1]}"
+    }
+} // <--- Add this closing brace here!
 /* -----------------------------------------------------------------
    ON COMPLETE: send email with sample names, etc.
    ----------------------------------------------------------------- */

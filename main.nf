@@ -3,7 +3,8 @@ nextflow.enable.dsl = 2
 
 /*
  * Full Nextflow DSL2 script, focusing on CRAM inputs (optionally FASTQ).
- * Removed samplesheet logic. Collects sample names from CRAM, sends them in email on completion.
+ * Includes a mosdepth coverage process called `doMosdepthCoverage`
+ * that is invoked in the main workflow on `meta_aln_index`.
  */
 
 /* -----------------------------------------------------------------
@@ -33,7 +34,8 @@ params.skipVariants         = params.skipVariants        ?: null
 params.skipQC               = params.skipQC              ?: null
 params.skipSTR              = params.skipSTR             ?: null
 params.skipSMN              = params.skipSMN             ?: null
-// Preset parameters:
+
+// Preset parameters
 params.gatk                 = params.gatk                ?: null
 params.copyCram             = params.copyCram            ?: null
 params.single               = params.single              ?: null
@@ -41,10 +43,8 @@ params.server               = params.server              ?: "lnx01"
 params.genome               = params.genome              ?: "hg38"
 params.outdir               = params.outdir              ?: "${launchDir.baseName}.Results"
 params.rundir               = params.rundir              ?: "${launchDir.baseName}"
-// Example intervals (if needed):
-// params.intervals_list    = "/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/..."
 
-// For coverage:
+// For coverage
 params.reference = params.reference ?: '/data/shared/genomes/hg38/GRCh38_masked_v2_decoy_exclude.fa'
 
 /* -----------------------------------------------------------------
@@ -254,14 +254,14 @@ include {
 } from "./modules/modules.dna.v1.nf"
 
 /* -----------------------------------------------------------------
-   PROCESS: coverage (mosdepth)
+   PROCESS: doMosdepthCoverage (mosdepth)
    Takes [sampleID, cramFile, craiFile] => outputs [sampleID, coverageValue]
    ----------------------------------------------------------------- */
 process doMosdepthCoverage {
     input:
         tuple val(sampleID), path(cramFile), path(craiFile)
 
-    tag {sampleID}
+    tag { sampleID }
 
     output:
         tuple val(sampleID), stdout
@@ -385,11 +385,11 @@ workflow {
                 }
             }
             // COVERAGE CALCULATION
-            /*def coverageResults = doMosdepthCoverage(meta_aln_index)
+            def coverageResults = doMosdepthCoverage(meta_aln_index)
             coverageResults.subscribe { result ->
                 coverageList << result
                 println "Coverage for sample '${result[0]}': ${result[1]}"
-            }*/
+            }
         }
     } // End of first if-block
 
@@ -406,7 +406,7 @@ workflow {
             inputFiles_symlinks_cram(meta_aln_index)
             SUB_VARIANTCALL(meta_aln_index)
         }
-    } // End of second if-block
+    }
 } // End of workflow
 
 /* -----------------------------------------------------------------

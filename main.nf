@@ -260,6 +260,41 @@ if (!params.cram && params.fastq) {
 
 // If you do a hybrid scenario, adapt as needed. (But your pipeline typically does one or the other.)
 
+process calculateCoverage {
+    input:
+        tuple val(sampleID), path(cramFile), path(craiFile)
+
+    tag { sampleID }
+
+    output:
+        tuple val(sampleID), stdout, emit: coverageChan
+
+    script:
+        """
+        sampleID='${sampleID}'
+        cram='${cramFile}'
+        crai='${craiFile}'
+        ref='${params.reference}'
+
+        if [ ! -f "\${crai}" ]; then
+            echo "No CRAI index found for \${cram}. Indexing..."
+            samtools index "\${cram}"
+        fi
+
+        prefix="\${sampleID}_mosdepth"
+        singularity run -B /data/:/data/,/lnx01_data2/:/lnx01_data2/ \\
+          /lnx01_data2/shared/testdata/mosdepth.sif \\
+          mosdepth -n --fast-mode -t 4 --fasta "\${ref}" \\
+          "\${prefix}" "\${cram}"
+
+        summaryFile="\${prefix}.mosdepth.summary.txt"
+        if [ -f "\${summaryFile}" ]; then
+          grep '^total' "\${summaryFile}" | awk '{print \$4}'
+        else
+          echo "0"
+        fi
+        """
+}
 
 /* -----------------------------------------------------------------
    SUBWORKFLOWS / MODULES
@@ -413,42 +448,6 @@ if (params.cram) {
         .subscribe { allSampleIDs ->
             sampleNamesList = allSampleIDs.unique()
         }
-}
-
-process calculateCoverage {
-    input:
-        tuple val(sampleID), path(cramFile), path(craiFile)
-
-    tag { sampleID }
-
-    output:
-        tuple val(sampleID), stdout, emit: coverageChan
-
-    script:
-        """
-        sampleID='${sampleID}'
-        cram='${cramFile}'
-        crai='${craiFile}'
-        ref='${params.reference}'
-
-        if [ ! -f "\${crai}" ]; then
-            echo "No CRAI index found for \${cram}. Indexing..."
-            samtools index "\${cram}"
-        fi
-
-        prefix="\${sampleID}_mosdepth"
-        singularity run -B /data/:/data/,/lnx01_data2/:/lnx01_data2/ \\
-          /lnx01_data2/shared/testdata/mosdepth.sif \\
-          mosdepth -n --fast-mode -t 4 --fasta "\${ref}" \\
-          "\${prefix}" "\${cram}"
-
-        summaryFile="\${prefix}.mosdepth.summary.txt"
-        if [ -f "\${summaryFile}" ]; then
-          grep '^total' "\${summaryFile}" | awk '{print \$4}'
-        else
-          echo "0"
-        fi
-        """
 }
 
 

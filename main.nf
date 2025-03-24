@@ -206,7 +206,7 @@ if (params.cram) {
         .set { meta_aln_index }
    def joinedFiles = sampleID_cram.join(sampleID_crai)
 }
-def coverageList = []
+
 
 /** 2) FASTQ handling **/
 if (params.fastq) {

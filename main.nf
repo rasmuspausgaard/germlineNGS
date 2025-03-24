@@ -283,6 +283,59 @@ include {
     SUB_SMN
 } from "./modules/modules.dna.v1.nf"
 
+
+
+
+/* -----------------------------------------------------------------
+   PROCESS: coverage (mosdepth)
+   Takes [sampleID, cramFile, craiFile] => outputs [sampleID, coverageValue]
+   ----------------------------------------------------------------- */
+process coverage {
+    input:
+        tuple val(sampleID), path cramFile, path craiFile
+
+    tag { sampleID }
+
+    output:
+        tuple val(sampleID), stdout
+
+    script:
+        """
+        sample='${sampleID}'
+        cram='${cramFile}'
+        crai='${craiFile}'
+        ref='${params.reference}'
+
+        prefix="\${sample}_mosdepth"
+        singularity run -B /data/:/data/,/lnx01_data2/:/lnx01_data2/ \\
+          /lnx01_data2/shared/testdata/mosdepth.sif \\
+          mosdepth -n --fast-mode -t 4 --fasta "\${ref}" \\
+          "\${prefix}" "\${cram}"
+
+        # Extract coverage from 'total' line (column 4)
+        summaryFile="\${prefix}.mosdepth.summary.txt"
+        if [ -f "\${summaryFile}" ]; then
+          grep '^total' "\${summaryFile}" | awk '{print \$4}'
+        else
+          echo "0"
+        fi
+        """
+}
+
+/* -----------------------------------------------------------------
+   Collect sample names from CRAM
+   ----------------------------------------------------------------- */
+def sampleNamesList = []
+
+if (params.cram) {
+    sampleID_cram
+        .map { it[0] }
+        .collect()
+        .subscribe { allSampleIDs ->
+            sampleNamesList = allSampleIDs.unique()
+        }
+}
+
 /* -----------------------------------------------------------------
    QC Workflow example
    ----------------------------------------------------------------- */
@@ -364,14 +417,14 @@ workflow {
                     SUB_SMN(inputFiles_cramCopy.out)
                 }
             }
-            // ========== COVERAGE CALCULATION ========== //
+            // COVERAGE CALCULATION 
             def coverageResults = coverage(meta_aln_index)
             coverageResults.subscribe { result ->
                 coverageList << result
                 println "Coverage for sample '${result[0]}': ${result[1]}"
             }
         }
-    } // <--- End of first if-block
+    } // End of first if-block
 
     // Second block: run if panel is set, not 'WGS_CNV', and not 'NGC'
     if (params.panel && params.panel != "WGS_CNV" && params.panel != "NGC") {
@@ -386,63 +439,8 @@ workflow {
             inputFiles_symlinks_cram(meta_aln_index)
             SUB_VARIANTCALL(meta_aln_index)
         }
-    } // <--- End of second if-block
-} // <--- End of workflow
-
-/* -----------------------------------------------------------------
-   PROCESS: coverage (mosdepth)
-   Takes [sampleID, cramFile, craiFile] => outputs [sampleID, coverageValue]
-   ----------------------------------------------------------------- */
-process coverage {
-    input:
-        tuple val(sampleID), path cramFile, path craiFile
-
-    tag { sampleID }
-
-    output:
-        tuple val(sampleID), stdout
-
-    script:
-        """
-        sample='${sampleID}'
-        cram='${cramFile}'
-        crai='${craiFile}'
-        ref='${params.reference}'
-
-        if [ ! -f "\${crai}" ]; then
-            echo "No CRAI index found for \${cram}. Indexing..."
-            samtools index "\${cram}"
-        fi
-
-        prefix="\${sample}_mosdepth"
-        singularity run -B /data/:/data/,/lnx01_data2/:/lnx01_data2/ \\
-          /lnx01_data2/shared/testdata/mosdepth.sif \\
-          mosdepth -n --fast-mode -t 4 --fasta "\${ref}" \\
-          "\${prefix}" "\${cram}"
-
-        # Extract coverage from 'total' line (column 4)
-        summaryFile="\${prefix}.mosdepth.summary.txt"
-        if [ -f "\${summaryFile}" ]; then
-          grep '^total' "\${summaryFile}" | awk '{print \$4}'
-        else
-          echo "0"
-        fi
-        """
-}
-
-/* -----------------------------------------------------------------
-   Collect sample names from CRAM
-   ----------------------------------------------------------------- */
-def sampleNamesList = []
-
-if (params.cram) {
-    sampleID_cram
-        .map { it[0] }
-        .collect()
-        .subscribe { allSampleIDs ->
-            sampleNamesList = allSampleIDs.unique()
-        }
-}
+    } // End of second if-block
+} // End of workflow
 
 /* -----------------------------------------------------------------
    ON COMPLETE: send email with sample names, coverage, etc.

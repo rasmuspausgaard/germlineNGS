@@ -261,14 +261,11 @@ process coverage {
     input:
         tuple val(sampleID), path cramFile, path craiFile
 
-    tag { sampleID }
-
     output:
         tuple val(sampleID), stdout
 
     script:
         """
-
         prefix="\${sampleID}_mosdepth"
         singularity run -B /data/:/data/,/lnx01_data2/:/lnx01_data2/ \\
           /lnx01_data2/shared/testdata/mosdepth.sif \\

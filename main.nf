@@ -385,7 +385,7 @@ workflow {
                 }
             }
             // COVERAGE CALCULATION
-            def coverageResults = coverage(meta_aln_index)
+            def coverageResults = calculateCoverage(meta_aln_index)
             coverageResults.subscribe { result ->
                 coverageList << result
                 println "Coverage for sample '${result[0]}': ${result[1]}"

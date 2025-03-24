@@ -267,7 +267,7 @@ process calculateCoverage {
     tag { sampleID }
 
     output:
-        tuple val(sampleID), stdout, emit: coverageChan
+        tuple val(sampleID), stdout
 
     script:
         """
@@ -450,7 +450,7 @@ if (params.cram) {
         }
 }
 
-
+/*
 def coverageList = []
 
 // Only do this if we have CRAM input
@@ -460,7 +460,7 @@ if (params.cram) {
         coverageList << result
         println "Coverage for ${result[0]} => ${result[1]}"
     }
-} // <--- Add this closing brace here!
+} // <--- Add this closing brace here!*/
 /* -----------------------------------------------------------------
    ON COMPLETE: send email with sample names, etc.
    ----------------------------------------------------------------- */

@@ -268,16 +268,12 @@ process coverage {
 
     script:
         """
-        sample='${sampleID}'
-        cram='${cramFile}'
-        crai='${craiFile}'
-        ref='${params.reference}'
 
-        prefix="\${sample}_mosdepth"
+        prefix="\${sampleID}_mosdepth"
         singularity run -B /data/:/data/,/lnx01_data2/:/lnx01_data2/ \\
           /lnx01_data2/shared/testdata/mosdepth.sif \\
-          mosdepth -n --fast-mode -t 4 --fasta "\${ref}" \\
-          "\${prefix}" "\${cram}"
+          mosdepth -n --fast-mode -t 4 --fasta "\${params.reference}" \\
+          "\${prefix}" "\${cramFile}"
 
         summaryFile="\${prefix}.mosdepth.summary.txt"
         if [ -f "\${summaryFile}" ]; then

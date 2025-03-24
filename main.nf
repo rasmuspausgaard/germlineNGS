@@ -43,9 +43,9 @@ params.outdir               = params.outdir              ?: "${launchDir.baseNam
 params.rundir               = params.rundir              ?: "${launchDir.baseName}"
 // Example intervals (if needed):
 // params.intervals_list    = "/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/..."
+
 // For coverage:
 params.reference = params.reference ?: '/data/shared/genomes/hg38/GRCh38_masked_v2_decoy_exclude.fa'
-
 
 /* -----------------------------------------------------------------
    Usage / Help messages
@@ -85,6 +85,7 @@ def helpMessage() {
       nextflow run this_script.nf --cram /path/to/cram --panel AV1
     """.stripIndent()
 }
+
 if (params.help) {
     helpMessage()
     exit 0
@@ -95,12 +96,12 @@ if (!params.cram && !params.fastq) {
     log.error "ERROR: Must provide --cram or --fastq. Use --help for usage."
     exit 1
 }
+
 // If user provides both CRAM and FASTQ, error
 if (params.cram && params.fastq) {
     log.error "ERROR: Cannot provide both --cram and --fastq. Use --help for usage."
     exit 1
 }
-
 
 /* -----------------------------------------------------------------
    Determine server-based paths, e.g. dataArchive
@@ -109,63 +110,51 @@ switch (params.server) {
     case 'lnx02':
         dataArchive = "/lnx01_data2/shared/dataArchive"
         break
-
     case 'lnx01':
         dataArchive = "/lnx01_data2/shared/dataArchive"
-        // modules_dir     = "/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules"
-        // subworkflow_dir = "/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows"
         break
-
     case 'kga01':
         dataArchive = "/data/shared/dataArchive"
         break
-
     default:
         dataArchive = "/lnx01_data2/shared/dataArchive"
         break
 }
 
-
 /* -----------------------------------------------------------------
    Panel logic: define patterns for CRAM / FASTQ
    ----------------------------------------------------------------- */
 switch (params.panel) {
-
     case "AV1":
         reads_pattern_cram  = "*{.,-,_}{AV1}{.,-,_}*.cram"
         reads_pattern_crai  = "*{.,-,_}{AV1}{.,-,_}*.crai"
         reads_pattern_fastq = "*{.,-,_}{AV1}{.,-,_}*R{1,2}*{fq,fastq}.gz"
         panelID = "AV1"
         break
-
     case "CV5":
         reads_pattern_cram  = "*{.,-,_}{CV5}{.,-,_}*.cram"
         reads_pattern_crai  = "*{.,-,_}{CV5}{.,-,_}*.crai"
         reads_pattern_fastq = "*{.,-,_}{CV5}{.,_,-}*R{1,2}*{fq,fastq}.gz"
         panelID = "CV5"
         break
-
     case "MV1":
         reads_pattern_cram  = "*{MV1}*.cram"
         reads_pattern_crai  = "*{MV1}*.crai"
         reads_pattern_fastq = "*{MV1}*R{1,2}*{fq,fastq}.gz"
         panelID = "MV1"
         break
-
     case "WES":
         reads_pattern_cram  = "*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.cram"
         reads_pattern_crai  = "*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.crai"
         reads_pattern_fastq = "*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*R{1,2}*{fq,fastq}.gz"
         panelID = "WES_subpanel"
         break
-
     case "WGS_CNV":
         reads_pattern_cram  = "*{-,.,_}{WG4_CNV}{-,.,_}*.cram"
         reads_pattern_crai  = "*{-,.,_}{WG4_CNV}{-,.,_}*.crai"
         reads_pattern_fastq = "*{-,.,_}{WG4_CNV}{-,.,_}*R{1,2}*{fq,fastq}.gz"
         panelID = "WGS"
         break
-
     default:
         // Default: WGS
         reads_pattern_cram  = "*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.cram"
@@ -175,12 +164,9 @@ switch (params.panel) {
         break
 }
 
-
 /* -----------------------------------------------------------------
    INPUT DATA CHANNELS (CRAM or FASTQ)
    ----------------------------------------------------------------- */
-
-/** 1) CRAM handling **/
 if (params.cram) {
     // CRAM + CRAI
     cramfiles = "${params.cram}/${reads_pattern_cram}"
@@ -189,7 +175,6 @@ if (params.cram) {
     Channel
         .fromPath(cramfiles, checkIfExists: true)
         .map { file ->
-            // sampleID from baseName
             def sampleID = file.baseName.tokenize('.').get(0)
             tuple(sampleID, file)
         }
@@ -204,18 +189,13 @@ if (params.cram) {
         .set { sampleID_crai }
 
     // Join CRAM + CRAI => meta_aln_index
-    sampleID_cram.join(sampleID_crai)
-        .set { meta_aln_index }
+    sampleID_cram.join(sampleID_crai).set { meta_aln_index }
 }
 
-/** 2) FASTQ handling **/
 if (params.fastq) {
     if (!params.fastqInput) {
-        // If user gave --fastq but didn't set --fastqInput, warn or handle?
         log.warn "FASTQ provided but --fastqInput not set. The pipeline expects CRAM by default."
     }
-
-    // If user sets fastq, define the path
     params.reads = "${params.fastq}/${reads_pattern_fastq}"
 
     Channel
@@ -238,28 +218,18 @@ if (params.fastq) {
         }
         .set { sampleid_R2 }
 
-    // Combine R1 + R2
-    sampleid_R1.join(sampleid_R2)
-        .set { read_pairs_ch }
+    sampleid_R1.join(sampleid_R2).set { read_pairs_ch }
 }
-
-/* -----------------------------------------------------------------
-   FINAL INPUT CHANNELS (tie CRAM or FASTQ to pipeline)
-   ----------------------------------------------------------------- */
 
 // If purely CRAM-based (no FASTQ):
 if (params.cram && !params.fastq) {
     // meta_aln_index is the final input channel for alignment-based steps
-    // e.g. .set { meta_aln_index }
 }
 
 // If purely FASTQ-based (no CRAM):
 if (!params.cram && params.fastq) {
     // read_pairs_ch is the final input channel for alignment steps
 }
-
-// If you do a hybrid scenario, adapt as needed. (But your pipeline typically does one or the other.)
-
 
 /* -----------------------------------------------------------------
    SUBWORKFLOWS / MODULES
@@ -282,9 +252,6 @@ include {
     SUB_STR
     SUB_SMN
 } from "./modules/modules.dna.v1.nf"
-
-
-
 
 /* -----------------------------------------------------------------
    PROCESS: coverage (mosdepth)
@@ -312,7 +279,6 @@ process coverage {
           mosdepth -n --fast-mode -t 4 --fasta "\${ref}" \\
           "\${prefix}" "\${cram}"
 
-        # Extract coverage from 'total' line (column 4)
         summaryFile="\${prefix}.mosdepth.summary.txt"
         if [ -f "\${summaryFile}" ]; then
           grep '^total' "\${summaryFile}" | awk '{print \$4}'
@@ -326,7 +292,6 @@ process coverage {
    Collect sample names from CRAM
    ----------------------------------------------------------------- */
 def sampleNamesList = []
-
 if (params.cram) {
     sampleID_cram
         .map { it[0] }
@@ -365,8 +330,6 @@ def coverageList = []
 workflow {
     // First block: run if panel is null or panel == 'WGS_CNV' or panel == 'NGC'
     if (!params.panel || params.panel == 'WGS_CNV' || params.panel == 'NGC') {
-
-        // If we have FASTQ input
         if (params.fastqInput || params.fastq) {
             SUB_PREPROCESS(read_pairs_ch)
             if (!params.preprocessOnly) {
@@ -384,7 +347,6 @@ workflow {
                 }
             }
         }
-        // Otherwise CRAM-based input
         else if (params.cram) {
             if (!params.copyCram) {
                 inputFiles_symlinks_cram(meta_aln_index)
@@ -417,7 +379,7 @@ workflow {
                     SUB_SMN(inputFiles_cramCopy.out)
                 }
             }
-            // COVERAGE CALCULATION 
+            // COVERAGE CALCULATION
             def coverageResults = coverage(meta_aln_index)
             coverageResults.subscribe { result ->
                 coverageList << result
@@ -447,7 +409,6 @@ workflow {
    ----------------------------------------------------------------- */
 workflow.onComplete {
     def currentYear = new Date().format('yyyy')
-
     def sampleNamesString = sampleNamesList.join('\n')
     def coverageSummary = coverageList
         .collect { tuple -> "${tuple[0]}: ${tuple[1].trim()}" }

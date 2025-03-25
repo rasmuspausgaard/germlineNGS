@@ -345,7 +345,7 @@ workflow {
                 // Symlink CRAM
                 inputFiles_symlinks_cram(meta_aln_index)
 
-                def coverageResults = CalculateCoverage(meta_aln_index)
+                coverageResults = CalculateCoverage(meta_aln_index)
                 coverageResults.subscribe { result ->
                     // Each 'result' is [NPN, coverageValue]
                     coverageList << result

@@ -438,10 +438,6 @@ if (params.cram) {
 workflow.onComplete {
     def currentYear = new Date().format('yyyy')
 
-    def coverageSummary = coverageList
-        .collect { tuple -> "${tuple[0]}: ${tuple[1].trim()}" }
-        .join('\n')
-
     println "Coverage summary:\n${coverageSummary}"
 
     // (Optional) If you have an IP file for lnx02 emailing:

@@ -404,34 +404,7 @@ workflow {
     }
 }
 
-/* -----------------------------------------------------------------
-   COLLECT SAMPLE NAMES FROM CRAM
-   ----------------------------------------------------------------- */
-def sampleNamesList = []
 
-// Only do this if we have CRAM input
-if (params.cram) {
-    // sampleID_cram emits (sampleID, cramFile)
-    // We'll map to just sampleID, collect them all, and store in sampleNamesList
-    sampleID_cram
-        .map { it[0] }
-        .collect()
-        .subscribe { allSampleIDs ->
-            sampleNamesList = allSampleIDs.unique()
-        }
-}
-
-/*
-def coverageList = []
-
-// Only do this if we have CRAM input
-if (params.cram) {
-    coverageChan.subscribe { result ->
-        // result is [ sampleID, coverageValue ]
-        coverageList << result
-        println "Coverage for ${result[0]} => ${result[1]}"
-    }
-} // <--- Add this closing brace here!*/
 /* -----------------------------------------------------------------
    ON COMPLETE: send email with sample names, etc.
    ----------------------------------------------------------------- */
@@ -452,7 +425,6 @@ workflow.onComplete {
     }
 
     // Build the sample names string
-    def sampleNamesString = sampleNamesList.join('\n')
     def coverageSummary = coverageList
         .collect { tuple -> "${tuple[0]}: ${tuple[1].trim()}" }
         .join('\n')
@@ -495,7 +467,6 @@ workflow.onComplete {
             |${obsSampleMessage}
             |
             |Samples included in the pipeline:
-            |${sampleNamesString}
             |${coverageSummary}
             """.stripMargin('|')
 

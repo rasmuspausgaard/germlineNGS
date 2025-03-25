@@ -682,10 +682,10 @@ process multiQC {
 }
 
 process CalculateCoverage {
+    tag "$sampleID"
+    errorStrategy 'ignore'
     input:
         tuple val(sampleID), path(aln), path(aln_index)
-
-    tag "$sampleID"
 
     output:
         tuple val(sampleID), stdout
@@ -696,11 +696,6 @@ process CalculateCoverage {
         cram='${(aln}'
         crai='${aln_index}'
         ref='${params.reference}'
-
-        if [ ! -f "\${crai}" ]; then
-            echo "No CRAI index found for \${cram}. Indexing..."
-            samtools index "\${cram}"
-        fi
 
         prefix="\${npn}_mosdepth"
         singularity run -B /data/:/data/,/lnx01_data2/:/lnx01_data2/ \\

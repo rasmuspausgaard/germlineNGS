@@ -43,7 +43,7 @@ params.outdir               = params.outdir              ?: "${launchDir.baseNam
 params.rundir               = params.rundir              ?: "${launchDir.baseName}"
 // Example intervals (if needed):
 // params.intervals_list    = "/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/..."
-
+params.reference   = params.reference   ?: '/data/shared/genomes/hg38/GRCh38_masked_v2_decoy_exclude.fa'
 
 /* -----------------------------------------------------------------
    Usage / Help messages

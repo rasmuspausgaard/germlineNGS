@@ -681,7 +681,7 @@ process multiQC {
     """
 }
 
-process calculateCoverage {
+process CalculateCoverage {
     input:
         tuple val(npn), path(cramFile), path(craiFile)
 

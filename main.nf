@@ -378,7 +378,6 @@ workflow {
             if (!params.copyCram) {
                 // Symlink CRAM
                 inputFiles_symlinks_cram(meta_aln_index)
-                calculateCoverage(meta_aln_index)
                 def coverageResults = calculateCoverage(meta_aln_index)
             
                 // Subscribe to coverageResults and store in coverageList
@@ -386,6 +385,7 @@ workflow {
                     // Each 'result' is [NPN, coverageValue]
                     coverageList << result
                     println "Coverage for sample '${result[0]}': ${result[1]}"
+               }
 
                 if (!params.skipVariants) {
                     SUB_VARIANTCALL_WGS(meta_aln_index)

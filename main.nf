@@ -260,7 +260,7 @@ if (!params.cram && params.fastq) {
 
 // If you do a hybrid scenario, adapt as needed. (But your pipeline typically does one or the other.)
 
-process calculateCoverage {
+process CalculateCoverage {
     input:
         tuple val(npn), path(cramFile), path(craiFile)
 
@@ -378,9 +378,8 @@ workflow {
             if (!params.copyCram) {
                 // Symlink CRAM
                 inputFiles_symlinks_cram(meta_aln_index)
-                def coverageResults = calculateCoverage(meta_aln_index)
-            
-                // Subscribe to coverageResults and store in coverageList
+
+                def coverageResults = CalculateCoverage(meta_aln_index)
                 coverageResults.subscribe { result ->
                     // Each 'result' is [NPN, coverageValue]
                     coverageList << result

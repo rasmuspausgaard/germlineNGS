@@ -316,7 +316,7 @@ workflow {
      * Panel logic for WGS_CNV, NGC, or if panel is null => WGS,
      * or if panel is set => do subworkflow for that panel, etc.
      */
-   calculateCoverage(meta_aln_index)
+   
     if (!params.panel || params.panel == 'WGS_CNV' || params.panel == 'NGC') {
         // If we have FASTQ input
         if (params.fastqInput || params.fastq) {

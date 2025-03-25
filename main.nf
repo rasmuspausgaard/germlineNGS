@@ -262,16 +262,16 @@ if (!params.cram && params.fastq) {
 
 process calculateCoverage {
     input:
-        tuple val(sampleID), path(cramFile), path(craiFile)
+        tuple val(npn), path(cramFile), path(craiFile)
 
-    tag { sampleID }
+    tag { npn }
 
     output:
-        tuple val(sampleID), stdout
+        tuple val(npn), stdout
 
     script:
         """
-        sampleID='${sampleID}'
+        npn='${npn}'
         cram='${cramFile}'
         crai='${craiFile}'
         ref='${params.reference}'
@@ -281,7 +281,7 @@ process calculateCoverage {
             samtools index "\${cram}"
         fi
 
-        prefix="\${sampleID}_mosdepth"
+        prefix="\${npn}_mosdepth"
         singularity run -B /data/:/data/,/lnx01_data2/:/lnx01_data2/ \\
           /lnx01_data2/shared/testdata/mosdepth.sif \\
           mosdepth -n --fast-mode -t 4 --fasta "\${ref}" \\
@@ -379,6 +379,13 @@ workflow {
                 // Symlink CRAM
                 inputFiles_symlinks_cram(meta_aln_index)
                 calculateCoverage(meta_aln_index)
+                def coverageResults = calculateCoverage(meta_aln_index)
+            
+                // Subscribe to coverageResults and store in coverageList
+                coverageResults.subscribe { result ->
+                    // Each 'result' is [NPN, coverageValue]
+                    coverageList << result
+                    println "Coverage for sample '${result[0]}': ${result[1]}"
 
                 if (!params.skipVariants) {
                     SUB_VARIANTCALL_WGS(meta_aln_index)
@@ -397,7 +404,6 @@ workflow {
                 // Physically copy CRAM
                 inputFiles_symlinks_cram(meta_aln_index)
                 inputFiles_cramCopy(meta_aln_index)
-                calculateCoverage(meta_aln_index)
 
                 if (!params.skipVariants) {
                     SUB_VARIANTCALL_WGS(inputFiles_cramCopy.out)
@@ -486,7 +492,11 @@ workflow.onComplete {
 
     // Build the sample names string
     def sampleNamesString = sampleNamesList.join('\n')
-    def sampleCoverageString = coverageList.join('\n')
+    def coverageSummary = coverageList
+        .collect { tuple -> "${tuple[0]}: ${tuple[1].trim()}" }
+        .join('\n')
+
+    println "Coverage summary:\n${coverageSummary}"
 
     // Email conditions: pipeline success, duration > 5 minutes(300000), user is "mmaj" or "raspau", etc.
     if (!params.nomail && workflow.success && workflow.duration > 3) {
@@ -525,7 +535,7 @@ workflow.onComplete {
             |
             |Samples included in the pipeline:
             |${sampleNamesString}
-            |${sampleCoverageString}
+            |${coverageSummary}
             """.stripMargin('|')
 
 

@@ -681,6 +681,41 @@ process multiQC {
     """
 }
 
+process CalculateCoverage {
+    input:
+        tuple val(sampleID), path(aln), path(aln_index)
+
+    tag "$sampleID"
+
+    output:
+        tuple val(sampleID), stdout
+
+    script:
+        """
+        npn='${sampleID}'
+        cram='${(aln}'
+        crai='${aln_index}'
+        ref='${params.reference}'
+
+        if [ ! -f "\${crai}" ]; then
+            echo "No CRAI index found for \${cram}. Indexing..."
+            samtools index "\${cram}"
+        fi
+
+        prefix="\${npn}_mosdepth"
+        singularity run -B /data/:/data/,/lnx01_data2/:/lnx01_data2/ \\
+          /lnx01_data2/shared/testdata/mosdepth.sif \\
+          mosdepth -n --fast-mode -t 4 --fasta "\${ref}" \\
+          "\${prefix}" "\${cram}"
+
+        summaryFile="\${prefix}.mosdepth.summary.txt"
+        if [ -f "\${summaryFile}" ]; then
+          grep '^total' "\${summaryFile}" | awk '{print \$4}'
+        else
+          echo "0"
+        fi
+        """
+}
 //////////////////////////// VARIANT CALLING MODULES //////////////////////////////////
 process haplotypecaller{
         errorStrategy 'ignore'

@@ -316,7 +316,12 @@ workflow {
      * Panel logic for WGS_CNV, NGC, or if panel is null => WGS,
      * or if panel is set => do subworkflow for that panel, etc.
      */
-    CalculateCoverage(meta_aln_index)
+    coverageResults = CalculateCoverage(meta_aln_index)
+    coverageResults.subscribe { result ->
+         // Each 'result' is [NPN, coverageValue]
+         coverageList << result
+         println "Coverage for sample '${result[0]}': ${result[1]}"
+    }
     if (!params.panel || params.panel == 'WGS_CNV' || params.panel == 'NGC') {
         // If we have FASTQ input
         if (params.fastqInput || params.fastq) {
@@ -344,13 +349,6 @@ workflow {
             if (!params.copyCram) {
                 // Symlink CRAM
                 inputFiles_symlinks_cram(meta_aln_index)
-
-                coverageResults = CalculateCoverage(meta_aln_index)
-                coverageResults.subscribe { result ->
-                    // Each 'result' is [NPN, coverageValue]
-                    coverageList << result
-                    println "Coverage for sample '${result[0]}': ${result[1]}"
-               }
 
                 if (!params.skipVariants) {
                     SUB_VARIANTCALL_WGS(meta_aln_index)

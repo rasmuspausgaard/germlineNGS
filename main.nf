@@ -398,7 +398,6 @@ workflow {
             }
         }
         else if (params.cram) {
-            inputFiles_symlinks_cram(meta_aln_index)
             SUB_VARIANTCALL(meta_aln_index)
         }
     }

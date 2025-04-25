@@ -960,7 +960,7 @@ process jointgenoScatter{
 process manta {
     errorStrategy 'ignore'
     tag "$meta.id"
-    publishDir "${inhouse_SV}/manta/raw_calls/", mode: 'copy', pattern: " ${meta.id}.${genome_version}.manta.diploidSV.*"
+    publishDir "${inhouse_SV}/manta/raw_calls/", mode: 'copy', pattern: "${meta.id}.${genome_version}.manta.diploidSV.vcf.gz"
     publishDir "${outputDir}/structuralVariants/manta/allOutput/", mode: 'copy'
     publishDir "${outputDir}/structuralVariants/manta/", mode: 'copy', pattern: "*.{AFanno,filtered}.*"
     cpus 10
@@ -1022,7 +1022,7 @@ process manta {
 process lumpy {
     errorStrategy 'ignore'
     tag "$meta.id"
-    publishDir "${inhouse_SV}/lumpy/raw_calls/", mode: 'copy', pattern: "*.Lumpy_altmode_step1.vcf"
+    publishDir "${inhouse_SV}/lumpy/raw_calls/", mode: 'copy', pattern: "${meta.id}.${genome_version}.Lumpy.all.vcf.gz"
     publishDir "${outputDir}/structuralVariants/lumpy/", mode: 'copy'
     
     cpus 10
@@ -1033,9 +1033,9 @@ process lumpy {
 
     output:
    // tuple val("${meta.id}"), path("${meta.id}.lumpy.AFanno.frq_below5pct.vcf"), emit: lumpyForSVDB
-    path("*.Lumpy_altmode_step1.vcf.gz") 
+    path("${meta.id}.${genome_version}.Lumpy.all.vcf.gz") 
     tuple val(meta), path("${meta.id}.${genome_version}.lumpy.AFanno.frq_below5pct.vcf"), emit: lumpyForSVDB
-    path("*.Lumpy_altmode_step1.vcf.gz") 
+
     script:
     """
     singularity run -B ${s_bind} ${simgpath}/smoove.sif smoove call -d \
@@ -1047,9 +1047,12 @@ process lumpy {
     --genotype ${aln[0]}
     
     mv ${params.rundir}.LumpyAltSingle/${meta.id}.${genome_version}*.genotyped.vcf.gz \
-    ${meta.id}.${genome_version}.Lumpy_altmode_step1.vcf.gz
+    ${meta.id}.${genome_version}.Lumpy.raw.vcf.gz
 
-    gzip -dc  ${meta.id}.${genome_version}.Lumpy_altmode_step1.vcf.gz >  ${meta.id}.${genome_version}.Lumpy_altmode_step1.vcf
+    bcftools annotate -x \
+    INFO/PREND,INFO/PRPOS \
+    ${meta.id}.${genome_version}.Lumpy.raw.vcf.gz \
+    | gzip > ${meta.id}.${genome_version}.Lumpy.all.vcf.gz
 
     mv ${params.rundir}.LumpyAltSingle/${meta.id}.${genome_version}*.csi \
     ${meta.id}.${genome_version}.Lumpy_altmode_step1.vcf.gz.csi
@@ -1057,7 +1060,7 @@ process lumpy {
     singularity exec  \
     --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
     --query \
-    --query_vcf ${meta.id}.${genome_version}.Lumpy_altmode_step1.vcf \
+    --query_vcf ${meta.id}.${genome_version}.Lumpy.all.vcf.gz \
     --sqdb ${lumpySVDB} > ${meta.id}.${genome_version}.lumpy.AFanno.vcf 
 
     ${gatk_exec} SelectVariants -R ${genome_fasta} \
@@ -1068,6 +1071,8 @@ process lumpy {
 
     """
 }
+    //gzip -dc  ${meta.id}.${genome_version}.Lumpy_altmode_step1.vcf.gz >  ${meta.id}.${genome_version}.Lumpy_altmode_step1.vcf
+
 
 process delly126 {
     errorStrategy 'ignore'

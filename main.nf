@@ -79,7 +79,7 @@ def helpMessage() {
       --hg38v2          Use hg38 v2 (ucsc.hg38.NGS.analysisSet.fa).
 
       --gatk            "danak" (v.4.1.9) or "new" (v.4.4.0.0)
-                            Default: danak  
+                            Default: danak for AV1, "new" for WGS and WES  
       
       --samplesheet     Path to samplesheet for samples to be analyzed (Only required for WGS analysis)
       

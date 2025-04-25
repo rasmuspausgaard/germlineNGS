@@ -114,7 +114,8 @@ switch (params.genome) {
         genome_version          ="hg38v3"
         cnvkit_germline_reference_PON="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/cnvkit/hg38v3_109samples.cnvkit.reference.cnn"
         cnvkit_inhouse_cnn_dir  ="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/cnvkit/wgs_persample_cnn/"
-        inhouse_SV              ="/data/shared/genomes/hg38/inhouse_DBs/hg38v3/"
+    //    inhouse_SV              ="/data/shared/genomes/hg38/inhouse_DBs/hg38v3/"
+        inhouse_SV              ="/lnx01_data4/archive/variantStorage/hg38/KGVejle/structuralVariants/"
         }
 
         // Gene and transcript annotation files:

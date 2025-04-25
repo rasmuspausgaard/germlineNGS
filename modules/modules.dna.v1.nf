@@ -1033,7 +1033,7 @@ process lumpy {
 
     output:
    // tuple val("${meta.id}"), path("${meta.id}.lumpy.AFanno.frq_below5pct.vcf"), emit: lumpyForSVDB
-    path("${meta.id}.${genome_version}.Lumpy.all.vcf.gz") 
+    path("${meta.id}.${genome_version}.Lumpy.all.vcf.*") 
     tuple val(meta), path("${meta.id}.${genome_version}.lumpy.AFanno.frq_below5pct.vcf"), emit: lumpyForSVDB
 
     script:
@@ -1052,10 +1052,9 @@ process lumpy {
     bcftools annotate -x \
     INFO/PREND,INFO/PRPOS \
     ${meta.id}.${genome_version}.Lumpy.raw.vcf.gz \
-    | gzip > ${meta.id}.${genome_version}.Lumpy.all.vcf.gz
+    | bgzip > ${meta.id}.${genome_version}.Lumpy.all.vcf.gz
 
-    mv ${params.rundir}.LumpyAltSingle/${meta.id}.${genome_version}*.csi \
-    ${meta.id}.${genome_version}.Lumpy_altmode_step1.vcf.gz.csi
+    tabix -p vcf ${meta.id}.${genome_version}.Lumpy.all.vcf.gz
 
     singularity exec  \
     --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \

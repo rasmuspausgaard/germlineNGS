@@ -492,7 +492,7 @@ workflow.onComplete {
 
             // Move WGS_CNV from lnx02 to lnx01 if success
             if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
-                def moveWGSCNVCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
+                def moveWGSCNVCommand = "rsync -a --exclude='work/' ${launchDir}/ /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
                 def moveWGSCNVProcess = ['bash', '-c', moveWGSCNVCommand].execute()
                 moveWGSCNVProcess.waitFor()
                 if (moveWGSCNVProcess.exitValue() != 0) {
@@ -502,7 +502,7 @@ workflow.onComplete {
 
             // Move WGS_NGC from lnx02 to lnx01 if success
             if (params.server == 'lnx02' && params.panel == 'NGC' && workflow.success) {
-                def moveWGSNGCCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WGS_NGC/${currentYear}/"
+                def moveWGSNGCCommand = "rsync -a --exclude='work/' ${launchDir}/ /lnx01_data2/shared/patients/hg38/WGS_NGC/${currentYear}/"
                 def moveWGSNGCProcess = ['bash', '-c', moveWGSNGCCommand].execute()
                 moveWGSNGCProcess.waitFor()
                 if (moveWGSNGCProcess.exitValue() != 0) {
@@ -512,7 +512,7 @@ workflow.onComplete {
 
             // Move WES from lnx02 to lnx01 if success
             if (params.server == 'lnx02' && params.panel == 'WES' && workflow.success) {
-                def moveWESCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WES_ALM_ONK/${currentYear}/"
+                def moveWESCommand = "rsync -a --exclude='work/' ${launchDir}/ /lnx01_data2/shared/patients/hg38/WES_ALM_ONK/${currentYear}/"
                 def moveWESProcess = ['bash', '-c', moveWESCommand].execute()
                 moveWESProcess.waitFor()
                 if (moveWESProcess.exitValue() != 0) {

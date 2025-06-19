@@ -971,7 +971,7 @@ process VarSeqCNV {
 
     singularity run \
       --bind /data/shared/VarSeq/:/appdata \
-      --bind ${variants_dir}:/data \                       # sampleFile lives here
+      --bind ${variants_dir}:/data \
       --bind /lnx01_data2:/lnx01_data2 \
       ${params.vs_sif} \
       -c login ${params.user_email} ${params.user_login} \
@@ -985,6 +985,7 @@ process VarSeqCNV {
       -c get_task_list
     """
 }
+
 
 
 /////////////////////////////// SV CALLING MODULES //////////////////////

@@ -734,7 +734,7 @@ process haplotypecaller{
 
         tuple val(sampleID), path("${sampleID}.${params.genome}.${genome_version}.g.vcf.gz"), emit: HC_sid_gvcf
     
-        tuple val(sampleID), path("${sampleID}.${params.genome}.${genome_version}.HC.*")
+        tuple val(sampleID), path("${sampleID}.${params.genome}.${genome_version}.HC.*"), emit: hc_vcfs
 
         path("${sampleID}.${params.genome}.${genome_version}.g.*")
         path("${sampleID}.${params.genome}.${genome_version}.HCbamout.*")

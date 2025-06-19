@@ -41,10 +41,21 @@ params.server               = params.server              ?: "lnx01"
 params.genome               = params.genome              ?: "hg38"
 params.outdir               = params.outdir              ?: "${launchDir.baseName}.Results"
 params.rundir               = params.rundir              ?: "${launchDir.baseName}"
+params.cram_date   = params.cram_date   ?: null
 // Example intervals (if needed):
 // params.intervals_list    = "/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/..."
 params.reference   = params.reference   ?: '/data/shared/genomes/hg38/GRCh38_masked_v2_decoy_exclude.fa'
 
+if( !params.cram_date ) {
+    if( params.cram ) {
+        def m = (new File(params.cram).name =~ /^(\d{6})/)
+        assert m : "Cannot find YYMMDD in cram folder name: ${params.cram}"
+        params.cram_date = m[0][1]      // e.g. "250606"
+        log.info "cram_date derived as ${params.cram_date}"
+    } else {
+        params.cram_date = 'unknown'    // or throw new Exception(...)
+    }
+}
 /* -----------------------------------------------------------------
    Usage / Help messages
    ----------------------------------------------------------------- */

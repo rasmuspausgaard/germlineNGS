@@ -321,86 +321,104 @@ def coverageList = []
    ----------------------------------------------------------------- */
 
 workflow {
-    /*
-     * Panel logic for WGS_CNV, NGC, or if panel is null => WGS,
-     * or if panel is set => do subworkflow for that panel, etc.
-     */
+
+    /* ──────────────────────────────────────────────────────────────
+       Coverage calculation (unchanged)
+       ────────────────────────────────────────────────────────────── */
     coverageResults = CalculateCoverage(meta_aln_index)
-    coverageResults.subscribe { result ->
-         // Each 'result' is [NPN, coverageValue]
-         coverageList << result
-         println "Coverage for sample '${result[0]}': ${result[1]}"
+    coverageResults.subscribe { res ->
+        coverageList << res                        // res = [sampleID , cov]
+        println "Coverage for sample '${res[0]}': ${res[1]}"
     }
-    if (!params.panel || params.panel == 'WGS_CNV' || params.panel == 'NGC') {
-        // If we have FASTQ input
+
+    /* ──────────────────────────────────────────────────────────────
+       MAIN WGS / WGS_CNV / NGC LOGIC
+       ────────────────────────────────────────────────────────────── */
+    if (!params.panel || params.panel in ['WGS_CNV', 'NGC']) {
+
+        /* -------- FASTQ branch ---------------------------------- */
         if (params.fastqInput || params.fastq) {
-            // Align FASTQ => CRAM
+
             SUB_PREPROCESS(read_pairs_ch)
 
             if (!params.preprocessOnly) {
-                // e.g. run variant calling, SV, STR, SMN
-                if (!params.skipVariants) {
+                if (!params.skipVariants)
                     SUB_VARIANTCALL_WGS(SUB_PREPROCESS.out.finalAln)
-                }
-                if (!params.skipSV) {
+                if (!params.skipSV)
                     SUB_CNV_SV(SUB_PREPROCESS.out.finalAln)
-                }
-                if (!params.skipSTR) {
+                if (!params.skipSTR)
                     SUB_STR(SUB_PREPROCESS.out.finalAln)
-                }
-                if (!params.skipSMN) {
+                if (!params.skipSMN)
                     SUB_SMN(SUB_PREPROCESS.out.finalAln)
-                }
             }
         }
-        // If we have CRAM input
-        else if (params.cram) {      
+
+        /* -------- CRAM branch ----------------------------------- */
+        else if (params.cram) {
+
+            /* 1)  OPTIONAL sample_fields.txt creation
+                   only for WGS_CNV panel                            */
+            Channel
+                .fromPath("${params.cram}/*.cram", checkIfExists:true)
+                .map { cramFile ->
+                    def sid = cramFile.baseName.tokenize('.').first()
+
+                    /* Create sample_fields only for WGS_CNV  */
+                    if (params.panel == 'WGS_CNV') {
+                        def sampleFile = file("${variants_dir}/${sid}_sample_file.txt")
+                        sampleFile.text = "Sample,BAM Path\n${sid},${cramFile}\n"
+                        log.info "sample_fields file written for $sid"
+                    }
+                    /* Pass downstream either way            */
+                    tuple(sid, cramFile)
+                }
+                .set { sampleID_cram }                         // (sid , cramPath)
+
+            /* Join CRAM with CRAI as you originally did (unchanged) */
+            sampleID_cram.join(sampleID_crai)
+                         .set { meta_aln_index_with_files }    // new final CRAM channel
+
+            /* Choose copy-mode vs symlink-mode as before */
             if (!params.copyCram) {
-                // Symlink CRAM
-                inputFiles_symlinks_cram(meta_aln_index)
 
-                if (!params.skipVariants) {
-                    SUB_VARIANTCALL_WGS(meta_aln_index)
-                }
-                if (!params.skipSV) {
-                    SUB_CNV_SV(meta_aln_index)
-                }
-                if (!params.skipSTR) {
-                    SUB_STR(meta_aln_index)
-                }
-                if (!params.skipSMN) {
-                    SUB_SMN(meta_aln_index)
-                }
-            }
-            else {
-                // Physically copy CRAM
-                inputFiles_symlinks_cram(meta_aln_index)
-                inputFiles_cramCopy(meta_aln_index)
+                inputFiles_symlinks_cram(meta_aln_index_with_files)
 
-                if (!params.skipVariants) {
+                if (!params.skipVariants)
+                    SUB_VARIANTCALL_WGS(meta_aln_index_with_files)
+                if (!params.skipSV)
+                    SUB_CNV_SV(meta_aln_index_with_files)
+                if (!params.skipSTR)
+                    SUB_STR(meta_aln_index_with_files)
+                if (!params.skipSMN)
+                    SUB_SMN(meta_aln_index_with_files)
+
+            } else {
+
+                inputFiles_symlinks_cram(meta_aln_index_with_files)
+                inputFiles_cramCopy(meta_aln_index_with_files)
+
+                if (!params.skipVariants)
                     SUB_VARIANTCALL_WGS(inputFiles_cramCopy.out)
-                }
-                if (!params.skipSV) {
+                if (!params.skipSV)
                     SUB_CNV_SV(inputFiles_cramCopy.out)
-                }
-                if (!params.skipSTR) {
+                if (!params.skipSTR)
                     SUB_STR(inputFiles_cramCopy.out)
-                }
-                if (!params.skipSMN) {
+                if (!params.skipSMN)
                     SUB_SMN(inputFiles_cramCopy.out)
-                }
             }
         }
     }
 
-    if (params.panel && params.panel != "WGS_CNV" || params.panel != 'NGC') {
-        // Panel logic
+    /* ──────────────────────────────────────────────────────────────
+       OTHER PANELS (everything except WGS_CNV / NGC / null)
+       ────────────────────────────────────────────────────────────── */
+    if (params.panel && !(params.panel in ['WGS_CNV', 'NGC'])) {
+
         if (params.fastqInput || params.fastq) {
             SUB_PREPROCESS(read_pairs_ch)
             SUB_VARIANTCALL(SUB_PREPROCESS.out.finalAln)
 
-            if (params.panel == "MV1") {
-                // For example, run vntyper for MV1
+            if (params.panel == 'MV1') {
                 vntyper_newRef(read_pairs_ch)
             }
         }
@@ -409,6 +427,7 @@ workflow {
         }
     }
 }
+
 
 
 /* -----------------------------------------------------------------

@@ -284,6 +284,7 @@ include {
     vntyper_newRef
     // Subworkflows:
     CalculateCoverage
+    VarSeqCNV
     SUB_PREPROCESS
     SUB_VARIANTCALL
     SUB_VARIANTCALL_WGS

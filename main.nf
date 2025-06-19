@@ -43,7 +43,7 @@ params.outdir               = params.outdir              ?: "${launchDir.baseNam
 params.rundir               = params.rundir              ?: "${launchDir.baseName}"
 // Example intervals (if needed):
 // params.intervals_list    = "/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/..."
-
+params.reference   = params.reference   ?: '/data/shared/genomes/hg38/GRCh38_masked_v2_decoy_exclude.fa'
 
 /* -----------------------------------------------------------------
    Usage / Help messages
@@ -164,6 +164,13 @@ switch (params.panel) {
         panelID = "WGS"
         break
 
+    case "NGC":
+        reads_pattern_cram  = "*{-,.,_}{WG4_NGC}{-,.,_}*.cram"
+        reads_pattern_crai  = "*{-,.,_}{WG4_NGC}{-,.,_}*.crai"
+        reads_pattern_fastq = "*{-,.,_}{WG4_NGC}{-,.,_}*R{1,2}*{fq,fastq}.gz"
+        panelID = "NGC"
+        break
+
     default:
         // Default: WGS
         reads_pattern_cram  = "*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged}{-,.,_}*.cram"
@@ -204,7 +211,9 @@ if (params.cram) {
     // Join CRAM + CRAI => meta_aln_index
     sampleID_cram.join(sampleID_crai)
         .set { meta_aln_index }
+   def joinedFiles = sampleID_cram.join(sampleID_crai)
 }
+
 
 /** 2) FASTQ handling **/
 if (params.fastq) {
@@ -274,6 +283,7 @@ include {
     multiQC
     vntyper_newRef
     // Subworkflows:
+    CalculateCoverage
     SUB_PREPROCESS
     SUB_VARIANTCALL
     SUB_VARIANTCALL_WGS
@@ -302,17 +312,25 @@ workflow QC {
         .collect()
     )
 }
-
-
+/* -----------------------------------------------------------------
+   storage list for coverage calculation
+   ----------------------------------------------------------------- */
+def coverageList = []
 /* -----------------------------------------------------------------
    MAIN WORKFLOW
    ----------------------------------------------------------------- */
+
 workflow {
     /*
      * Panel logic for WGS_CNV, NGC, or if panel is null => WGS,
      * or if panel is set => do subworkflow for that panel, etc.
      */
-
+    coverageResults = CalculateCoverage(meta_aln_index)
+    coverageResults.subscribe { result ->
+         // Each 'result' is [NPN, coverageValue]
+         coverageList << result
+         println "Coverage for sample '${result[0]}': ${result[1]}"
+    }
     if (!params.panel || params.panel == 'WGS_CNV' || params.panel == 'NGC') {
         // If we have FASTQ input
         if (params.fastqInput || params.fastq) {
@@ -336,7 +354,7 @@ workflow {
             }
         }
         // If we have CRAM input
-        else if (params.cram) {
+        else if (params.cram) {      
             if (!params.copyCram) {
                 // Symlink CRAM
                 inputFiles_symlinks_cram(meta_aln_index)
@@ -387,34 +405,19 @@ workflow {
             }
         }
         else if (params.cram) {
-            inputFiles_symlinks_cram(meta_aln_index)
             SUB_VARIANTCALL(meta_aln_index)
         }
     }
 }
 
-/* -----------------------------------------------------------------
-   COLLECT SAMPLE NAMES FROM CRAM
-   ----------------------------------------------------------------- */
-def sampleNamesList = []
-
-// Only do this if we have CRAM input
-if (params.cram) {
-    // sampleID_cram emits (sampleID, cramFile)
-    // We'll map to just sampleID, collect them all, and store in sampleNamesList
-    sampleID_cram
-        .map { it[0] }
-        .collect()
-        .subscribe { allSampleIDs ->
-            sampleNamesList = allSampleIDs.unique()
-        }
-}
 
 /* -----------------------------------------------------------------
    ON COMPLETE: send email with sample names, etc.
    ----------------------------------------------------------------- */
 workflow.onComplete {
     def currentYear = new Date().format('yyyy')
+
+    println "Coverage summary:\n${coverageSummary}"
 
     // (Optional) If you have an IP file for lnx02 emailing:
     def ipFilePath = '/lnx01_data2/shared/testdata/test_scripts/ip_file'
@@ -428,7 +431,11 @@ workflow.onComplete {
     }
 
     // Build the sample names string
-    def sampleNamesString = sampleNamesList.join('\n')
+    def coverageSummary = coverageList
+        .collect { tuple -> "${tuple[0]}: ${tuple[1].trim()}" }
+        .join('\n')
+
+    println "Coverage summary:\n${coverageSummary}"
 
     // Email conditions: pipeline success, duration > 5 minutes(300000), user is "mmaj" or "raspau", etc.
     if (!params.nomail && workflow.success && workflow.duration > 3) {
@@ -466,12 +473,12 @@ workflow.onComplete {
             |${obsSampleMessage}
             |
             |Samples included in the pipeline:
-            |${sampleNamesString}
+            |${coverageSummary}
             """.stripMargin('|')
 
 
             // Example recipients
-            def recipients = 'Rasmus.Hojrup.Pausgaard@rsyd.dk'
+            def recipients = 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk,Amalie.Schirmer.Ahlgreen.Larsen@rsyd.dk,Sara.Kaczor.Elbaek@rsyd.dk'
 
             // Send mail depending on server
             if (params.server == 'lnx01') {
@@ -492,7 +499,7 @@ workflow.onComplete {
 
             // Move WGS_CNV from lnx02 to lnx01 if success
             if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
-                def moveWGSCNVCommand = "rsync -a --exclude='work/' ${launchDir}/ /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
+                def moveWGSCNVCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
                 def moveWGSCNVProcess = ['bash', '-c', moveWGSCNVCommand].execute()
                 moveWGSCNVProcess.waitFor()
                 if (moveWGSCNVProcess.exitValue() != 0) {
@@ -502,7 +509,7 @@ workflow.onComplete {
 
             // Move WGS_NGC from lnx02 to lnx01 if success
             if (params.server == 'lnx02' && params.panel == 'NGC' && workflow.success) {
-                def moveWGSNGCCommand = "rsync -a --exclude='work/' ${launchDir}/ /lnx01_data2/shared/patients/hg38/WGS_NGC/${currentYear}/"
+                def moveWGSNGCCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WGS_NGC/${currentYear}/"
                 def moveWGSNGCProcess = ['bash', '-c', moveWGSNGCCommand].execute()
                 moveWGSNGCProcess.waitFor()
                 if (moveWGSNGCProcess.exitValue() != 0) {
@@ -512,7 +519,7 @@ workflow.onComplete {
 
             // Move WES from lnx02 to lnx01 if success
             if (params.server == 'lnx02' && params.panel == 'WES' && workflow.success) {
-                def moveWESCommand = "rsync -a --exclude='work/' ${launchDir}/ /lnx01_data2/shared/patients/hg38/WES_ALM_ONK/${currentYear}/"
+                def moveWESCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WES_ALM_ONK/${currentYear}/"
                 def moveWESProcess = ['bash', '-c', moveWESCommand].execute()
                 moveWESProcess.waitFor()
                 if (moveWESProcess.exitValue() != 0) {

@@ -323,20 +323,20 @@ def coverageList = []
 workflow {
 
     /* ──────────────────────────────────────────────────────────────
-       Coverage calculation (unchanged)
+       0 ▪ Coverage calculation (unchanged)
        ────────────────────────────────────────────────────────────── */
     coverageResults = CalculateCoverage(meta_aln_index)
     coverageResults.subscribe { res ->
-        coverageList << res                        // res = [sampleID , cov]
+        coverageList << res
         println "Coverage for sample '${res[0]}': ${res[1]}"
     }
 
     /* ──────────────────────────────────────────────────────────────
-       MAIN WGS / WGS_CNV / NGC LOGIC
+       1 ▪ MAIN logic for WGS / WGS_CNV / NGC
        ────────────────────────────────────────────────────────────── */
-    if (!params.panel || params.panel in ['WGS_CNV', 'NGC']) {
+    if (!params.panel || params.panel in ['WGS_CNV','NGC']) {
 
-        /* -------- FASTQ branch ---------------------------------- */
+        /* ───── FASTQ branch ───── */
         if (params.fastqInput || params.fastq) {
 
             SUB_PREPROCESS(read_pairs_ch)
@@ -353,80 +353,75 @@ workflow {
             }
         }
 
-        /* -------- CRAM branch ----------------------------------- */
+        /* ───── CRAM branch ───── */
         else if (params.cram) {
 
-            /* 1)  OPTIONAL sample_fields.txt creation
-                   only for WGS_CNV panel                            */
+            /* 1 ▪ Build (sid , sampleFile) channel – only WGS_CNV writes file */
             Channel
                 .fromPath("${params.cram}/*.cram", checkIfExists:true)
                 .map { cramFile ->
-                    def sid = cramFile.baseName.tokenize('.').first()
+                    def sid = cramFile.baseName.split('\\.')[0]
+                    def sampleFile = file("${variants_dir}/${sid}_sample_file.txt")
 
-                    /* Create sample_fields only for WGS_CNV  */
-                    if (params.panel == 'WGS_CNV') {
-                        def sampleFile = file("${variants_dir}/${sid}_sample_file.txt")
+                    if (params.panel == 'WGS_CNV' && !sampleFile.exists()) {
                         sampleFile.text = "Sample,BAM Path\n${sid},${cramFile}\n"
                         log.info "sample_fields file written for $sid"
                     }
-                    /* Pass downstream either way            */
-                    tuple(sid, cramFile)
+                    tuple(sid, sampleFile)                 // emit (sid , sampleFile)
                 }
-                .set { sampleID_cram }                         // (sid , cramPath)
+                .set { sid_sampleFile }
 
-            /* Join CRAM with CRAI as you originally did (unchanged) */
+            /* 2 ▪ Your existing CRAM→CRA​I join & downstream sub-workflows */
             sampleID_cram.join(sampleID_crai)
-                         .set { meta_aln_index_with_files }    // new final CRAM channel
+                         .set { meta_aln_index_with_files }
 
-            /* Choose copy-mode vs symlink-mode as before */
             if (!params.copyCram) {
-
                 inputFiles_symlinks_cram(meta_aln_index_with_files)
-
                 if (!params.skipVariants)
                     SUB_VARIANTCALL_WGS(meta_aln_index_with_files)
-                if (!params.skipSV)
-                    SUB_CNV_SV(meta_aln_index_with_files)
-                if (!params.skipSTR)
-                    SUB_STR(meta_aln_index_with_files)
-                if (!params.skipSMN)
-                    SUB_SMN(meta_aln_index_with_files)
-
+                if (!params.skipSV)  SUB_CNV_SV(meta_aln_index_with_files)
+                if (!params.skipSTR) SUB_STR(meta_aln_index_with_files)
+                if (!params.skipSMN) SUB_SMN(meta_aln_index_with_files)
             } else {
-
                 inputFiles_symlinks_cram(meta_aln_index_with_files)
                 inputFiles_cramCopy(meta_aln_index_with_files)
-
                 if (!params.skipVariants)
                     SUB_VARIANTCALL_WGS(inputFiles_cramCopy.out)
-                if (!params.skipSV)
-                    SUB_CNV_SV(inputFiles_cramCopy.out)
-                if (!params.skipSTR)
-                    SUB_STR(inputFiles_cramCopy.out)
-                if (!params.skipSMN)
-                    SUB_SMN(inputFiles_cramCopy.out)
+                if (!params.skipSV)  SUB_CNV_SV(inputFiles_cramCopy.out)
+                if (!params.skipSTR) SUB_STR(inputFiles_cramCopy.out)
+                if (!params.skipSMN) SUB_SMN(inputFiles_cramCopy.out)
+            }
+
+            /* 3 ▪ Launch VarSeq per sample — only when panel == WGS_CNV */
+            if (params.panel == 'WGS_CNV') {
+
+                haplotypecaller.out.hc_vcfs          // (sid , vcf)
+                    .join(sid_sampleFile)            // (sid , vcf , sampleFile)
+                    .map { sid, vcf, sampleFile ->
+                        tuple(vcf, sid, sampleFile)  // → VarSeqCNV input order
+                    } | VarSeqCNV
             }
         }
     }
 
     /* ──────────────────────────────────────────────────────────────
-       OTHER PANELS (everything except WGS_CNV / NGC / null)
+       2 ▪ Other panels (everything except WGS_CNV / NGC / null)
        ────────────────────────────────────────────────────────────── */
-    if (params.panel && !(params.panel in ['WGS_CNV', 'NGC'])) {
+    if (params.panel && !(params.panel in ['WGS_CNV','NGC'])) {
 
         if (params.fastqInput || params.fastq) {
             SUB_PREPROCESS(read_pairs_ch)
             SUB_VARIANTCALL(SUB_PREPROCESS.out.finalAln)
 
-            if (params.panel == 'MV1') {
+            if (params.panel == 'MV1')
                 vntyper_newRef(read_pairs_ch)
-            }
-        }
-        else if (params.cram) {
+
+        } else if (params.cram) {
             SUB_VARIANTCALL(meta_aln_index)
         }
     }
 }
+
 
 
 

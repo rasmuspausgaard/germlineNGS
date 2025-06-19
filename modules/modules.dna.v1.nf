@@ -952,6 +952,39 @@ process jointgenoScatter{
 
 /////////////////////////////// vspipeline ///////////////////////////////
 
+process VarSeqCNV {
+
+    errorStrategy 'ignore'
+    tag { sid }
+
+    input:
+        tuple path(vcf), val(sid), path(sampleFile)
+
+    script:
+    """
+    set -euo pipefail
+
+    mkdir -p "/data/shared/VarSeq/projects/WGS CNV/2025/${params.cram_date}"
+
+    project_name="${params.cram_date}_${sid}_\$(basename \"${params.template_path}\" .vsproject-template | tr ' ' '_')"
+    full_path_in="/appdata/projects/WGS CNV/2025/${params.cram_date}/\${project_name}"
+
+    singularity run \
+      --bind /data/shared/VarSeq/:/appdata \
+      --bind ${variants_dir}:/data \                       # sampleFile lives here
+      --bind /lnx01_data2:/lnx01_data2 \
+      ${params.vs_sif} \
+      -c login ${params.user_email} ${params.user_login} \
+      -c license_activate ${params.license_key} \
+      -c project_create "\${full_path_in}" "${params.template_path}" \
+      -c import files=/data/\$(basename "${vcf}") \
+           sample_fields_file=/data/\$(basename "${sampleFile}") \
+      -c task_wait \
+      -c download_required_sources \
+      -c task_wait \
+      -c get_task_list
+    """
+}
 
 
 /////////////////////////////// SV CALLING MODULES //////////////////////

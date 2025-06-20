@@ -45,6 +45,8 @@ params.cram_date   = params.cram_date   ?: null
 // Example intervals (if needed):
 // params.intervals_list    = "/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/..."
 params.reference   = params.reference   ?: '/data/shared/genomes/hg38/GRCh38_masked_v2_decoy_exclude.fa'
+def year = new Date().format('yyyy')
+params.variants_dir = "/lnx01_data2/shared/patients/hg38/WGS.CNV/${year}/${params.cram_date}/${params.cram_date}.Results/Variants"
 
 if( !params.cram_date ) {
     if( params.cram ) {

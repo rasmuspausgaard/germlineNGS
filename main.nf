@@ -295,6 +295,7 @@ include {
     vntyper_newRef
     // Subworkflows:
     CalculateCoverage
+    haplotypecaller
     VarSeqCNV
     SUB_PREPROCESS
     SUB_VARIANTCALL

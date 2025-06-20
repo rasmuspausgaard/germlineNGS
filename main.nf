@@ -373,20 +373,21 @@ workflow {
         /* ───── CRAM branch ───── */
         else if ( params.cram ) {
 
-            /* 1 ▪ Build (sid , sampleFile)  */
+            /* 1 ▪ Build (sid , sampleFile) – kun CRAM-filer der matcher *WG4_CNV*.cram */
             Channel
-                .fromPath("${params.cram}/*.cram", checkIfExists:true)
+                .fromPath("${params.cram}/*WG4_CNV*.cram", checkIfExists:true)
                 .map { cramFile ->
                     def sid = cramFile.baseName.split('\\.')[0]
                     def sampleFile = file("${variants_dir}/${sid}_sample_file.txt")
-
-                    if ( params.panel == 'WGS_CNV' && !sampleFile.exists() ) {
+            
+                    if ( !sampleFile.exists() ) {
                         sampleFile.text = "Sample,BAM Path\n${sid},${cramFile}\n"
                         log.info "sample_fields file written for $sid"
                     }
-                    tuple(sid, sampleFile)
+                    tuple(sid, sampleFile)               // (sid , sampleFile)
                 }
                 .set { sid_sampleFile }
+
 
             /* 2 ▪ CRAM→CRAI join and downstream calls */
             sampleID_cram.join(sampleID_crai)

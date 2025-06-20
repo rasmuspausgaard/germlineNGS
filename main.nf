@@ -48,14 +48,19 @@ params.reference   = params.reference   ?: '/data/shared/genomes/hg38/GRCh38_mas
 
 if( !params.cram_date ) {
     if( params.cram ) {
-        def m = (new File(params.cram).name =~ /^(\d{6})/)
-        assert m : "Cannot find YYMMDD in cram folder name: ${params.cram}"
-        params.cram_date = m[0][1]      // e.g. "250606"
+        // strip trailing slash if present
+        def cramDir = params.cram.endsWith('/') ? params.cram[0..-2] : params.cram
+        def m = (new File(cramDir).name =~ /(\d{6})/)
+        assert m, "Cannot find YYMMDD in cram folder name: ${params.cram}"
+        params.cram_date = m[0][1]        // e.g. "250617"
         log.info "cram_date derived as ${params.cram_date}"
     } else {
-        params.cram_date = 'unknown'    // or throw new Exception(...)
+        throw new IllegalArgumentException(
+            "Need --cram_date or --cram from which to derive it")
     }
 }
+/* folder where VarSeq CNV expects its VCFs & sample-fields */
+def variants_dir = "/lnx01_data2/shared/patients/hg38/WGS.CNV/2025/${params.cram_date}/${params.cram_date}.Results/Variants"
 /* -----------------------------------------------------------------
    Usage / Help messages
    ----------------------------------------------------------------- */

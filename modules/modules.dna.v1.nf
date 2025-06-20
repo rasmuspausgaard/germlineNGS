@@ -898,6 +898,9 @@ process genotypeSingle {
     tuple val(sampleID), path(gvcf),path(index)
     output:
     path("${sampleID}.*")
+    tuple val(sampleID),
+          path("${sampleID}.HC.vcf.gz"),
+          emit: hc_vcfs                                     // NEW
     script:
     """
     ${gatk_exec} --java-options "-Xmx4G -XX:+UseParallelGC -XX:ParallelGCThreads=30" GenotypeGVCFs \
@@ -1667,26 +1670,51 @@ workflow SUB_VARIANTCALL_WGS {
 */
 
 workflow SUB_VARIANTCALL_WGS {
+
+    /* -----------------------------  inputs  ----------------------------- */
     take:
-    meta_aln_index
+    meta_aln_index                       // (sid , cram , crai) tuples
+
+    /* -----------------------------  main   ----------------------------- */
     main:
-    haplotypecallerSplitIntervals(meta_aln_index.combine(haplotypecallerIntervalList))
-    combineGVCF(haplotypecallerSplitIntervals.out.groupTuple())
-    genotypeSingle(combineGVCF.out.singleGVCF)
+    /*
+     * 1) Split intervals for per-sample Haplotyper runs
+     *    (unchanged — you already had this call)
+     */
+    haplotypecallerSplitIntervals(
+        meta_aln_index.combine(haplotypecallerIntervalList)
+    )
 
-    //    if (!params.single) {
+    /*
+     * 2) Combine gVCFs coming from the split intervals
+     */
+    combineGVCF( haplotypecallerSplitIntervals.out.groupTuple() )
+
+    /*
+     * 3) Genotype each combined gVCF
+     *    — genotypeSingle now emits hc_vcfs (see process definition)
+     */
+    genotypeSingle( combineGVCF.out.singleGVCF )
+
+    /* ----------  your existing scatter / joint-geno logic  ------------- */
     combineGVCF.out.sample_gvcf_list_scatter
-    .map{" -V "+ it }
-    .set{gvcflist_scatter_done}
-    
-    gvcflist_scatter_done
-    .collectFile(name: "collectfileTEST_scatter.txt", newLine: false)
-    .map {it.text.trim()}.set {gvcfsamples_for_GATK_scatter}
+        .map { " -V ${it}" }
+        .set { gvcflist_scatter_done }
 
-    if (!params.skipJointGenotyping) {
-        jointgenoScatter(gvcfsamples_for_GATK_scatter)
+    gvcflist_scatter_done
+        .collectFile(name: 'collectfileTEST_scatter.txt', newLine: false)
+        .map { it.text.trim() }
+        .set { gvcfsamples_for_GATK_scatter }
+
+    if ( !params.skipJointGenotyping ) {
+        jointgenoScatter( gvcfsamples_for_GATK_scatter )
     }
+
+    /* -----------------------------  outputs  ---------------------------- */
+    emit:
+    hc_vcfs = genotypeSingle.out.hc_vcfs   // (sid , sampleID.HC.vcf.gz)
 }
+
 workflow SUB_CNV_SV {
     take:
     meta_aln_index

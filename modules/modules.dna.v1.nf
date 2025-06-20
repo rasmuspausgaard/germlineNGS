@@ -957,7 +957,6 @@ process jointgenoScatter{
 
 process VarSeqCNV {
 
-    errorStrategy 'ignore'
     tag { sid }
 
     input:
@@ -966,15 +965,13 @@ process VarSeqCNV {
     script:
     """
     set -euo pipefail
+    VAR_DIR='${params.variants_dir}'
 
     mkdir -p "/data/shared/VarSeq/projects/WGS CNV/2025/${params.cram_date}"
 
-    project_name="${params.cram_date}_${sid}_\$(basename \"${params.template_path}\" .vsproject-template | tr ' ' '_')"
-    full_path_in="/appdata/projects/WGS CNV/2025/${params.cram_date}/\${project_name}"
-
     singularity run \
       --bind /data/shared/VarSeq/:/appdata \
-      --bind ${variants_dir}:/data \
+      --bind ${VAR_DIR}:/data \
       --bind /lnx01_data2:/lnx01_data2 \
       ${params.vs_sif} \
       -c login ${params.user_email} ${params.user_login} \

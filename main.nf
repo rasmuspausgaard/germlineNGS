@@ -406,7 +406,7 @@ workflow {
 
             /* 3 ▪ Run VarSeq once per sample (WGS_CNV only) */
             if ( params.panel == 'WGS_CNV' && vcalls ) {
-                vcalls.out.hc_vcfs
+                vcalls.hc_vcfs
                       .join(sid_sampleFile)               // (sid , vcf , sampleFile)
                       .map { sid, vcf, sampleFile ->
                           tuple(vcf, sid, sampleFile)      // → VarSeqCNV

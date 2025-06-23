@@ -974,7 +974,7 @@ process VarSeqCNV {
         --bind /data/shared/VarSeq/:/appdata \
         --bind "\${VAR_DIR}":/data \
         --bind /lnx01_data2:/lnx01_data2 \
-        "/lnx01_data2/shared/testdata/RunData/vspipeline_latest.sif" \    # <- hele stien direkte
+        "/lnx01_data2/shared/testdata/RunData/vspipeline_latest.sif" \  
         -c login "${params.user_email}" "${params.user_login}" \
         -c license_activate "${params.license_key}" \
         -c project_create "/appdata/projects/WGS CNV/2025/${params.cram_date}/${sid}" "${params.template_path}" \

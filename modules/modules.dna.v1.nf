@@ -970,8 +970,8 @@ process VarSeqCNV {
 
     singularity run \
       --bind /data/shared/VarSeq/:/appdata \
-      --bind \${VAR_DIR}:/data \          #  ←  \${ … }  gør det til bash-tid,
-      --bind /lnx01_data2:/lnx01_data2 \  #     ikke Groovy-tid
+      --bind \${VAR_DIR}:/data \         
+      --bind /lnx01_data2:/lnx01_data2 \  
       ${params.vs_sif} \
       -c login ${params.user_email} ${params.user_login} \
       -c license_activate ${params.license_key} \

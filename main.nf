@@ -44,6 +44,8 @@ params.rundir               = params.rundir              ?: "${launchDir.baseNam
 params.cram_date   = params.cram_date   ?: null
 // … lige ovenfor / nedenfor dine andre parametre
 params.vs_sif = params.vs_sif ?: '/lnx01_data2/shared/testdata/RunData/vspipeline_latest.sif'
+params.template_path = params.template_path ?:   '/appdata/VarSeq/User Data/ProjectTemplates/WGS - CNV v.250207.vsproject-template'
+
 
 // Example intervals (if needed):
 // params.intervals_list    = "/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/..."

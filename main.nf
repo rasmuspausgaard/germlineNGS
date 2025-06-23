@@ -42,6 +42,9 @@ params.genome               = params.genome              ?: "hg38"
 params.outdir               = params.outdir              ?: "${launchDir.baseName}.Results"
 params.rundir               = params.rundir              ?: "${launchDir.baseName}"
 params.cram_date   = params.cram_date   ?: null
+// … lige ovenfor / nedenfor dine andre parametre
+params.vs_sif = params.vs_sif ?: '/lnx01_data2/shared/testdata/RunData/vspipeline_latest.sif'
+
 // Example intervals (if needed):
 // params.intervals_list    = "/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/..."
 params.reference   = params.reference   ?: '/data/shared/genomes/hg38/GRCh38_masked_v2_decoy_exclude.fa'

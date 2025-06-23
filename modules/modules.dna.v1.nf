@@ -962,34 +962,31 @@ process VarSeqCNV {
     input:
         tuple path(vcf), val(sid), path(sampleFile)
 
-    /* lav evt. en kort Groovy-variabel – så er det læsbart */
-    def VAR_DIR = params.variants_dir
-
     script:
     """
     set -euo pipefail
+
+    VAR_DIR="${params.variants_dir}"
 
     mkdir -p "/data/shared/VarSeq/projects/WGS CNV/2025/${params.cram_date}"
 
     singularity run \
         --bind /data/shared/VarSeq/:/appdata \
-        --bind ${VAR_DIR}:/data \
+        --bind "\${VAR_DIR}":/data \
         --bind /lnx01_data2:/lnx01_data2 \
-        ${params.vs_sif} \
-        -c login ${params.user_email} ${params.user_login} \
-        -c license_activate ${params.license_key} \
-        -c project_create \
-            \"/appdata/projects/WGS CNV/2025/${params.cram_date}/${sid}\" \
-            \"${params.template_path}\" \
-        -c import \
-            files=/data/\$(basename "${vcf}") \
-            sample_fields_file=/data/\$(basename "${sampleFile}") \
+        "/lnx01_data2/shared/testdata/RunData/vspipeline_latest.sif" \    # <- hele stien direkte
+        -c login "${params.user_email}" "${params.user_login}" \
+        -c license_activate "${params.license_key}" \
+        -c project_create "/appdata/projects/WGS CNV/2025/${params.cram_date}/${sid}" "${params.template_path}" \
+        -c import files=/data/\$(basename "${vcf}") \
+             sample_fields_file=/data/\$(basename "${sampleFile}") \
         -c task_wait \
         -c download_required_sources \
         -c task_wait \
         -c get_task_list
     """
 }
+
 
 
 

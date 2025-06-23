@@ -965,18 +965,17 @@ process VarSeqCNV {
     script:
     """
     set -euo pipefail
-    VAR_DIR='${params.variants_dir}'
 
     mkdir -p "/data/shared/VarSeq/projects/WGS CNV/2025/${params.cram_date}"
 
     singularity run \
       --bind /data/shared/VarSeq/:/appdata \
-      --bind ${VAR_DIR}:/data \
+      --bind ${params.variants_dir}:/data \        #  ← her
       --bind /lnx01_data2:/lnx01_data2 \
       ${params.vs_sif} \
       -c login ${params.user_email} ${params.user_login} \
       -c license_activate ${params.license_key} \
-      -c project_create "\${full_path_in}" "${params.template_path}" \
+      -c project_create "/appdata/projects/WGS CNV/2025/${params.cram_date}/${sid}" "${params.template_path}" \
       -c import files=/data/\$(basename "${vcf}") \
            sample_fields_file=/data/\$(basename "${sampleFile}") \
       -c task_wait \
@@ -985,6 +984,7 @@ process VarSeqCNV {
       -c get_task_list
     """
 }
+
 
 
 

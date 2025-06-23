@@ -970,7 +970,7 @@ process VarSeqCNV {
 
     singularity run \
       --bind /data/shared/VarSeq/:/appdata \
-      --bind ${params.variants_dir}:/data \        #  ← her
+      --bind ${params.variants_dir}:/data \        
       --bind /lnx01_data2:/lnx01_data2 \
       ${params.vs_sif} \
       -c login ${params.user_email} ${params.user_login} \

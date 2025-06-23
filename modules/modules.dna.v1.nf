@@ -965,13 +965,13 @@ process VarSeqCNV {
     script:
     """
     set -euo pipefail
-
+    VAR_DIR="${params.variants_dir}"
     mkdir -p "/data/shared/VarSeq/projects/WGS CNV/2025/${params.cram_date}"
 
     singularity run \
       --bind /data/shared/VarSeq/:/appdata \
-      --bind ${params.variants_dir}:/data \        
-      --bind /lnx01_data2:/lnx01_data2 \
+      --bind \${VAR_DIR}:/data \          #  ←  \${ … }  gør det til bash-tid,
+      --bind /lnx01_data2:/lnx01_data2 \  #     ikke Groovy-tid
       ${params.vs_sif} \
       -c login ${params.user_email} ${params.user_login} \
       -c license_activate ${params.license_key} \

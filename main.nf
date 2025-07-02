@@ -481,11 +481,11 @@ workflow.onComplete {
             def recipients = 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk,Amalie.Schirmer.Ahlgreen.Larsen@rsyd.dk,Sara.Kaczor.Elbaek@rsyd.dk'
 
             // Send mail depending on server
-            if (params.server == 'lnx01') {
+            if (params.server == 'lnx02') {
                 // Nextflow's built-in mail
                 sendMail(to: recipients, subject: 'CRAM-based pipeline Update', body: body)
             }
-            else if (params.server == 'lnx02') {
+            /*else if (params.server == 'lnx02') {
                 // Use external command
                 def emailCommand = "ssh ${ip} 'echo \"${body}\" | mail -s \"CRAM-based pipeline Update\" ${recipients}'"
                 def proc = ['bash', '-c', emailCommand].execute()
@@ -495,7 +495,7 @@ workflow.onComplete {
                 } else {
                     println("Email successfully sent from lnx02.")
                 }
-            }
+            }*/
 
             // Move WGS_CNV from lnx02 to lnx01 if success
             if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {

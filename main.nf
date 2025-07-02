@@ -41,7 +41,6 @@ params.server               = params.server              ?: "lnx01"
 params.genome               = params.genome              ?: "hg38"
 params.outdir               = params.outdir              ?: "${launchDir.baseName}.Results"
 params.rundir               = params.rundir              ?: "${launchDir.baseName}"
-params.cram_date   = params.cram_date   ?: null
 // … lige ovenfor / nedenfor dine andre parametre
 params.vs_sif = params.vs_sif ?: '/lnx01_data2/shared/testdata/RunData/vspipeline_latest.sif'
 params.template_path = params.template_path ?:   '/appdata/VarSeq/User Data/ProjectTemplates/WGS - CNV v.250207.vsproject-template'
@@ -57,16 +56,14 @@ if( !params.cram_date ) {
 
     if( params.cram ) {
 
-        // fjern evt. trailing slash og .cram-filnavn
-        def cramPath = params.cram.replaceFirst(/\/+$/, '')       // fjern trailing /
-        cramPath      = cramPath.replaceFirst(/\.cram$/, '')      // fjern .cram hvis det er en fil
+        // gør path → String
+        def cramPath = params.cram.toString()
+                      .replaceFirst(/\/+$/, '')   // fjern trailing /
+                      .replaceFirst(/\.cram$/, '') // fjern .cram hvis det er en fil
 
-        /* find første path-del der starter med YYMMDD */
-        def runFolder = cramPath.tokenize('/')                     // split alle /
-                         .find { it ==~ /\d{6}.*/ }                // fx 250620_A01014_…
-
-        assert runFolder, "Kan ikke finde YYMMDD i stien: ${params.cram}"
-        params.cram_date = runFolder.substring(0,6)                // 250620
+        /* sidste mappe‐navn starter med YYMMDD */
+        def runFolder = cramPath.tokenize('/').last()   // fx 250620_A01014_...
+        params.cram_date = runFolder[0..5]              // '250620'
 
         log.info "cram_date derived as ${params.cram_date}"
 
@@ -75,6 +72,7 @@ if( !params.cram_date ) {
             "Need --cram_date or --cram from which to derive it")
     }
 }
+
 
 /* folder where VarSeq CNV expects its VCFs & sample-fields */
 def variants_dir = "/lnx01_data2/shared/patients/hg38/WGS.CNV/2025/${params.cram_date}/${params.cram_date}.Results/Variants"

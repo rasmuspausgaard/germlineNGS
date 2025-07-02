@@ -54,18 +54,28 @@ def year = new Date().format('yyyy')
 params.variants_dir = "/lnx01_data2/shared/patients/hg38/WGS.CNV/${year}/${params.cram_date}/${params.cram_date}.Results/Variants"
 
 if( !params.cram_date ) {
+
     if( params.cram ) {
-        // strip trailing slash if present
-        def cramDir = params.cram.endsWith('/') ? params.cram[0..-2] : params.cram
-        def m = (new File(cramDir).name =~ /(\d{6})/)
-        assert m, "Cannot find YYMMDD in cram folder name: ${params.cram}"
-        params.cram_date = m[0][1]        // e.g. "250617"
+
+        // fjern evt. trailing slash og .cram-filnavn
+        def cramPath = params.cram.replaceFirst(/\/+$/, '')       // fjern trailing /
+        cramPath      = cramPath.replaceFirst(/\.cram$/, '')      // fjern .cram hvis det er en fil
+
+        /* find første path-del der starter med YYMMDD */
+        def runFolder = cramPath.tokenize('/')                     // split alle /
+                         .find { it ==~ /\d{6}.*/ }                // fx 250620_A01014_…
+
+        assert runFolder, "Kan ikke finde YYMMDD i stien: ${params.cram}"
+        params.cram_date = runFolder.substring(0,6)                // 250620
+
         log.info "cram_date derived as ${params.cram_date}"
+
     } else {
         throw new IllegalArgumentException(
             "Need --cram_date or --cram from which to derive it")
     }
 }
+
 /* folder where VarSeq CNV expects its VCFs & sample-fields */
 def variants_dir = "/lnx01_data2/shared/patients/hg38/WGS.CNV/2025/${params.cram_date}/${params.cram_date}.Results/Variants"
 /* -----------------------------------------------------------------

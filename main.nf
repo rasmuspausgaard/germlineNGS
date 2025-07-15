@@ -300,7 +300,7 @@ switch (params.genome) {
 
 }
 
-/*
+
 switch (params.genome) {
     case 'hg19':
         assembly="hg19"
@@ -445,6 +445,12 @@ channel
     .fromPath(params.intervals_list)
     .map { it -> tuple(it.baseName,it)}
     .set { haplotypecallerIntervalList }
+    
+Varianter (SNPs og INDELs) af ukendt klinisk betydning (VUS)
+Gen	HGVS.c	HGVS.p	VAF (%)
+FLT4	NM_182925.5:c.977T>A	p.I326N	51.2%
+
+/*
 */
 
 

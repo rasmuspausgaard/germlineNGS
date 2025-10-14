@@ -62,7 +62,7 @@ def helpMessage() {
 
     If the inputdata (FastQ or CRAM) have been transferred to the data archive (which it is by default), the script will automatically find the relevant inputdata  and create symlinks for them in the output (results) directory.
 
-    The script will automatically look for FastQ or CRAM files in subfolders at /lnx01_data2/shared/dataArchive/. This location contains read-only access to the data archive, containing all FastQ and CRAM files. There's no need to copy or move any data.
+    The script will automatically look for FastQ or CRAM files in subfolders at KG Vejles dataarchive. This location contains read-only access to the data archive, containing all FastQ and CRAM files. There's no need to copy or move any data.
 
     The user can point to a specific folder containing raw data (FastQ) using the --fastq option  or alignment data (CRAM) using the --cram option
     This is only needed if input data (FastQ or CRAM) exists outside the data archive (e.g. if data are in personal folders), or if the script is run without samplesheet.
@@ -125,7 +125,7 @@ def helpMessage() {
       --skipSMN         Do not call SMN1 and SMN2 variants
                             Default: Call SMN variants with SMNCopyNumberCaller
       
-      SLURM execution:
+    SLURM execution:
       -profile slurm    Run the script using SLURM execution
                             Default: Not set - run the script on the current server
 

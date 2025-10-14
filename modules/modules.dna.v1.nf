@@ -290,7 +290,7 @@ channel
 
 log.info """\
 ======================================================
-Clinical Genetics Vejle: GermlineNGS v2
+Clinical Genetics Vejle: GermlineNGS v3 + SLURM
 ======================================================
 Genome       : $params.genome
 Genome FASTA : $genome_fasta

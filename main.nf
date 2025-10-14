@@ -5,9 +5,9 @@ nextflow.enable.dsl = 2
 date=new Date().format( 'yyMMdd' )
 user="$USER"
 runID="${date}.${user}"
-server=
 
 //Unset parameters
+/*
 params.help                     =false
 params.panel                    =null
 params.samplesheet              =null
@@ -36,6 +36,7 @@ params.single                   =null
 
 params.server                   =null
 params.genome                   = "hg38"
+*/
 params.outdir                   = "${launchDir.baseName}.Results"
 params.rundir                   = "${launchDir.baseName}"
 
@@ -70,6 +71,8 @@ def helpMessage() {
 
     Main options:
       --help            Print this help message
+
+
       
       --genome          hg19 or hg38
                             Default: hg38 v3 (masked + decoys)
@@ -121,6 +124,10 @@ def helpMessage() {
 
       --skipSMN         Do not call SMN1 and SMN2 variants
                             Default: Call SMN variants with SMNCopyNumberCaller
+      
+      SLURM execution:
+      -profile slurm    Run the script using SLURM execution
+                            Default: Not set - run the script on the current server
 
     """.stripIndent()
 }

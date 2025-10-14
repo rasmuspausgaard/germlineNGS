@@ -310,13 +310,16 @@ Script start : $date2
 *********************************************/
 
 process inputFiles_symlinks_fq{
-    errorStrategy 'ignore'
+    label 'low'
+    
     publishDir "${outputDir}/input_symlinks/", mode: 'link', pattern:'*.{fastq,fq}.gz'
+    
     input:
     tuple val(meta), path(reads)// from read_input2
     
     output:
     tuple val(meta), path(reads)
+    
     script:
     """
     """
@@ -325,14 +328,17 @@ process inputFiles_symlinks_fq{
 
 
 process inputFiles_symlinks_cram{
-    errorStrategy 'ignore'
+    label 'low'
+   
     publishDir "${outputDir}/input_symlinks/", mode: 'link', pattern: '*.{ba,cr}*'
     publishDir "${outputDir}/Variants/CRAM_symlinks/", mode: 'link', pattern: '*.{ba,cr}*'
+   
     input:
     tuple val(meta), path(aln)// from symlink_input
     
     output:
     tuple val(meta), path(aln)
+    
     script:
     """
     """
@@ -340,78 +346,34 @@ process inputFiles_symlinks_cram{
 
 
 process inputFiles_symlinks_spring{
-    errorStrategy 'ignore'
+    label 'low'
+
     publishDir "${outputDir}/input_symlinks/", mode: 'link', pattern: '*.spring'
 
     input:
     tuple val(meta), path(spring)    
-    output:
-    path(spring)
-    script:
-    """
-    """
-}
-
-/*
-process inputFiles_cramCopy{
-    errorStrategy 'ignore'
-    publishDir "${outputDir}/input_CRAM/", mode: 'copy', pattern: '*.{ba,cr}*'
-    input:
-    tuple val(meta), path(aln)// from symlink_input
     
     output:
-    tuple val(meta), path(aln)
+    path(spring)
+    
     script:
     """
-    sleep 120
     """
 }
-*/
-
-///////////////////////////////// SPRING COMPRESS / DECOMPRESS //////////////
-
-/*
-process spring_compression {
-    tag "$meta.id"
-    errorStrategy 'ignore'
-    publishDir "${springOutDir}/${runfolder}.spring", mode: 'copy', pattern:'*.spring'
-
-    cpus 16
-    maxForks 5
-    conda '/data/shared/programmer/miniconda3/envs/spring'
-
-    input:
-    tuple val(meta), path(reads)
-
-    output:
-    path("${meta.id}.spring")
-    script:
-
-    """
-    spring -c \
-    -i ${reads[0]} ${reads[1}} \
-    -t ${task.cpus} \
-    -o ${meta.id}.spring \
-    -g
-    """
-
-}
-*/
 
 process spring_decompress {
     tag "$meta.id"
-    errorStrategy 'ignore'
-    publishDir "${outputDir}/fastqFromSpring/", mode: 'copy', pattern:"*.fastq.gz"
-
-    cpus 8
-    maxForks 12
+    label 'medium'
     conda '/data/shared/programmer/miniconda3/envs/spring'
+
+    publishDir "${outputDir}/fastqFromSpring/", mode: 'copy', pattern:"*.fastq.gz"
 
     input:
     tuple val(meta), path(springfile)
 
     output:
     tuple val(meta), path("*_R1.fastq.gz"), path("*_R2.fastq.gz"),emit: spring_fastq
+
     script:
     """
     spring -d \
@@ -427,14 +389,10 @@ process spring_decompress {
 
 
 ///////////////////////////////// PREPROCESS MODULES //////////////////////// 
-// input ch structure: As simple as possible: meta + actual data
+
 process fastq_to_ubam {
-    errorStrategy 'ignore'
+    label 'medium'
     tag "$meta.id"
-    //publishDir "${outputDir}/unmappedBAM/", mode: 'copy',pattern: '*.{bam,bai}'
-    //publishDir "${outputDir}/fastq_symlinks/", mode: 'link', pattern:'*.{fastq,fq}.gz'
-    cpus 20
-    maxForks 10
 
     input:
     tuple val(meta), path(reads)
@@ -457,6 +415,8 @@ process fastq_to_ubam {
 }
 
 process markAdapters {
+    label 'medium'
+    tag "$meta.id"
 
     input:
     tuple val(meta), path(uBAM)
@@ -477,10 +437,7 @@ process markAdapters {
 
 process align {
     tag "$meta.id"
-
-    maxForks 6
-    errorStrategy 'ignore'
-    cpus 60
+    label 'veryHigh'
 
     input:
     tuple val(meta), path(uBAM), path(metrics)
@@ -521,21 +478,20 @@ process align {
 }
 
 process markDup_bam {
-    errorStrategy 'ignore'
-    maxForks 6
+    label 'high'
     tag "$meta.id"
+    conda '/lnx01_data3/shared/programmer/miniconda3/envs/sambamvcftools/' 
+
     publishDir "${outputDir}/BAM/", mode: 'copy', pattern: "*.BWA.MD.ba*"
     publishDir "${outputDir}/CRAM/", mode: 'copy', pattern: "*.BWA.MD.cr*"
     publishDir "${outputDir}/Variants/Alignment_symlinks/", mode: 'link', pattern: "*.BWA.MD.cr*"
 
-    conda '/lnx01_data3/shared/programmer/miniconda3/envs/sambamvcftools/' 
 
     input:
     tuple val(meta), path(aln) 
     
     output:
     tuple val(meta), path("${meta.id}${genome_version}.BWA.MD.bam"), path("${meta.id}.${genome_version}.BWA.MD*bai")
-
     tuple val(meta), path("${meta.id}.${genome_version}.BWA.MD.cram"), path("${meta.id}.${genome_version}.BWA.MD*crai")
     
     script:
@@ -554,13 +510,11 @@ process markDup_bam {
 }
 
 process markDup_cram {
-    errorStrategy 'ignore'
-    maxForks 6
+    label 'high'
     tag "$meta.id"
-    publishDir "${outputDir}/CRAM/", mode: 'copy', pattern: "*.BWA.MD.cr*"
-    //publishDir "${outputDir}/${outputDir}/Variants/Alignment_symlinks/", mode: 'link', pattern: "*.BWA.MD.cr*"
-
     conda '/lnx01_data3/shared/programmer/miniconda3/envs/sambamvcftools/' 
+
+    publishDir "${outputDir}/CRAM/", mode: 'copy', pattern: "*.BWA.MD.cr*"
 
     input:
     tuple val(meta), path(aln)
@@ -568,6 +522,7 @@ process markDup_cram {
     output:
     tuple val(meta),  path("${meta.id}.${genome_version}.BWA.MD.cram"), path("${meta.id}.${genome_version}.BWA.MD*crai"), emit: markDup_output
     path  "versions.yml"                       , emit: versions
+
     script:
     """
     samtools view -h ${aln[0]} \
@@ -589,14 +544,15 @@ process markDup_cram {
 // QC PROCESSES
 
 process bamtools {
-    errorStrategy 'ignore'
+    label 'low'
     tag "$meta.id"
-    publishDir "${outputDir}/QC/", mode: 'copy'
-
     conda '/lnx01_data3/shared/programmer/miniconda3/envs/sambamvcftools/' 
+
+    publishDir "${outputDir}/QC/", mode: 'copy'
     
     input:
     tuple val(meta),  path(aln)
+
     output:
     path("${meta.id}.bamtools.sample.stats.txt"), emit: multiqc
 
@@ -614,11 +570,10 @@ process bamtools {
 
 
 process samtools {
-
-    errorStrategy 'ignore'
+    label 'low'
     tag "$meta.id"
-    publishDir "${outputDir}/QC/samtools/", mode: 'copy'
 
+    publishDir "${outputDir}/QC/samtools/", mode: 'copy'
 
     input:  
     tuple val(meta), path(aln)
@@ -634,15 +589,13 @@ process samtools {
     """
 }
 
-// not working with CRAM:
-process qualimap {
-    errorStrategy 'ignore'
-    tag "$meta.id"
-    cpus 10
-    maxForks 8
-    publishDir "${outputDir}/QC/qualimap/", mode: 'copy'
 
+process qualimap {
+    label 'high'
+    tag "$meta.id"
     conda '/lnx01_data3/shared/programmer/miniconda3/envs/qualimapSamtools/' 
+
+    publishDir "${outputDir}/QC/qualimap/", mode: 'copy'
 
     input:
     tuple val(meta), path(aln)
@@ -661,38 +614,11 @@ process qualimap {
 
     """
 }
-/*
-process fastqc_bam {
-    errorStrategy 'ignore'
-    tag "$meta.id"
-    cpus 2
-    publishDir "${outputDir}/QC/${meta.id}/", mode: 'copy'
-    input:
-    tuple val(meta), path(aln)
-    
-    output:
-    path "*_fastqc.{zip,html}"      , emit: multiqc
-    path  "versions.yml"            , emit: versions
-    script:
-    """
-    singularity run -B ${s_bind} ${simgpath}/fastqc.sif --quiet --threads ${task.cpus} ${aln[0]}
-
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        fastqc: \$( fastqc --version | sed '/FastQC v/!d; s/.*v//' )
-    END_VERSIONS
-    """
-}
-*/
-
-// ^^^^^^^NOT WORKING WITH CRAM ^^^^^^ //
 
 process collectWGSmetrics {
-
-    errorStrategy 'ignore'
+    label 'medium'
     tag "$meta.id"
-    cpus 5
+    
     publishDir "${outputDir}/QC/picard/", mode: 'copy'
 
     input:
@@ -711,16 +637,12 @@ process collectWGSmetrics {
 }
 
 process multiQC {
-    
-    errorStrategy 'ignore'
+    label 'low'
+
     publishDir "${outputDir}/QC/", mode: 'copy'
 
     input:
     path(inputfiles)
-    //   path("_fastqc.*").collect().ifEmpty([])
-    // path("${meta.id}.samtools.sample.stats.txt").collect().ifEmpty([])
-    // path("bamQC/*").collect().ifEmpty([]) 
-    //path("${meta.id}.picardWGSmetrics.txt").collect().ifEmpty([]) 
 
     output:
     path ("*multiqc_report.html")
@@ -735,10 +657,8 @@ process multiQC {
 
 //////////////////////////// VARIANT CALLING MODULES //////////////////////////////////
 process haplotypecaller{
-        errorStrategy 'ignore'
-
-        cpus 4
         tag "$meta.id"
+
         publishDir "${outputDir}/Variants/per_sample/", mode: 'copy', pattern: "*.HC.*"
         publishDir "${outputDir}/Variants/GVCF_files/", mode: 'copy', pattern: "*.g.*"
         publishDir "${outputDir}/HaplotypeCallerBAMout/", mode: 'copy', pattern: "*.HCbamout.*"
@@ -746,10 +666,7 @@ process haplotypecaller{
         if (!params.panel=="CV5") {
             publishDir "${variantStorage}/gVCF/${panelID_storage}/", mode: 'copy', pattern:'*.g.vc*' //
         }
-        if (params.server=="lnx01"){
-            maxForks 10
-        }
-        else {maxForks 50} 
+
 
         input:
         tuple val(meta), path(aln)
@@ -834,17 +751,8 @@ process jointgenotyping {
 //////// WGS VARIANT CALLING (HaplotypeCaller SplitIntervals)
 
 process haplotypecallerSplitIntervals {
-    errorStrategy 'ignore'
-    /*    
-        if (params.server=="lnx01"){
-            maxForks 20
-        }
-        if (!params.server=="lnx01") {
-            maxForks 10
+    label 'low'
 
-        }
-    */
-    maxForks 70 
     input:
     tuple val(meta), path(aln), val(sub_intID), path(sub_interval) //from HC_scatter_input_bam.combine(interval_list1)
 
@@ -868,11 +776,11 @@ process haplotypecallerSplitIntervals {
 
 
 process combineGVCF {
-    errorStrategy 'ignore'
+    label 'medium'
     tag "$meta.id"
-    //publishDir "${outputDir}/Variants/", mode: 'copy', pattern:
+
     publishDir "${variantStorage}/gVCF/${panelID_storage}/", mode: 'copy', pattern:'*.g.*' // storageDir= /lnx01_data3/storage/alignedData/hg38/
-    maxForks 30
+
 
     input:
 
@@ -892,11 +800,11 @@ process combineGVCF {
 }
 
 process genotypeSingle {
-    errorStrategy 'ignore'
+    label 'medium'
     tag "$meta.id"
-    publishDir "${outputDir}/Variants/", mode: 'copy'
-    maxForks 30
 
+    publishDir "${outputDir}/Variants/", mode: 'copy'
+    
     input:
     tuple val(meta), path(gvcf),path(index)
     output:
@@ -919,9 +827,8 @@ process genotypeSingle {
     """
 }
 
-
 process jointgenoScatter{
-    errorStrategy 'ignore'
+    label 'medium'
     publishDir "${outputDir}/Variants/", mode: 'copy'
 
     input:
@@ -959,13 +866,12 @@ process jointgenoScatter{
 /////////////////////////////// SV CALLING MODULES //////////////////////
 
 process manta {
-    errorStrategy 'ignore'
+    label 'high'
     tag "$meta.id"
+
     publishDir "${inhouse_SV}/manta/raw_calls/", mode: 'copy', pattern: "${meta.id}.${genome_version}.manta.diploidSV.vcf.gz"
     publishDir "${outputDir}/structuralVariants/manta/allOutput/", mode: 'copy'
     publishDir "${outputDir}/structuralVariants/manta/", mode: 'copy', pattern: "*.{AFanno,filtered}.*"
-    cpus 10
-    maxForks 3
 
     input:
     tuple val(meta), path(aln)
@@ -974,6 +880,7 @@ process manta {
     path("${meta.id}.${genome_version}.manta.*.{vcf,vcf.gz,gz.tbi}")
   //  tuple val("${meta.id}"), path("${meta.id}.${genome_version}.manta.AFanno.frq_below5pct.vcf"), emit: mantaForSVDB
     tuple val(meta), path("${meta.id}.${genome_version}.manta.AFanno.frq_below5pct.vcf"), emit: mantaForSVDB
+    
     script:
     """
     singularity run -B ${s_bind} ${simgpath}/manta1.6_strelka2.9.10.sif configManta.py \
@@ -1021,19 +928,16 @@ process manta {
 }
 
 process lumpy {
-    errorStrategy 'ignore'
+    label 'high'
     tag "$meta.id"
+
     publishDir "${inhouse_SV}/lumpy/raw_calls/", mode: 'copy', pattern: "${meta.id}.${genome_version}.Lumpy.all.vcf.gz"
     publishDir "${outputDir}/structuralVariants/lumpy/", mode: 'copy'
-    
-    cpus 10
-    maxForks 3
 
     input:
     tuple val(meta), path(aln)
 
     output:
-   // tuple val("${meta.id}"), path("${meta.id}.lumpy.AFanno.frq_below5pct.vcf"), emit: lumpyForSVDB
     path("${meta.id}.${genome_version}.Lumpy.all.vcf.*") 
     tuple val(meta), path("${meta.id}.${genome_version}.lumpy.AFanno.frq_below5pct.vcf"), emit: lumpyForSVDB
 
@@ -1071,25 +975,23 @@ process lumpy {
 
     """
 }
-    //gzip -dc  ${meta.id}.${genome_version}.Lumpy_altmode_step1.vcf.gz >  ${meta.id}.${genome_version}.Lumpy_altmode_step1.vcf
+
 
 
 process delly126 {
-    errorStrategy 'ignore'
     tag "$meta.id"
+    label 'medium'
+
     publishDir "${inhouse_SV}/delly/raw_calls/", mode: 'copy', pattern: "*.raw.*"
     publishDir "${outputDir}/structuralVariants/delly/", mode: 'copy'
-    //publishDir "${outputDir}/structuralVariants/manta/", mode: 'copy', pattern: "*.{AFanno,filtered}.*"
-    cpus 1
-    maxForks 3
 
     input:
     tuple val(meta), path(aln)
 
     output:
     tuple val(meta), path("${meta.id}.${genome_version}.delly.raw.vcf")
-    //tuple val("${meta.id}"), path("${meta.id}.${genome_version}.delly.AFanno.frq_below5pct.vcf"), emit: dellyForSVDB
     tuple val(meta), path("${meta.id}.${genome_version}.delly.AFanno.frq_below5pct.vcf"), emit: dellyForSVDB
+
     script:
     """
     /data/shared/programmer/BIN/delly126 call \
@@ -1108,18 +1010,12 @@ process delly126 {
     -select "FRQ>0.05" \
     -invert-select \
     -O ${meta.id}.${genome_version}.delly.AFanno.frq_below5pct.vcf
-
     """
-
 }
 
-
 process cnvkit {
-    errorStrategy 'ignore'
+    label 'medium'
     tag "$meta.id"
-
-    cpus 10
-    maxForks 3
 
     publishDir "${outputDir}/structuralVariants/cnvkit/", mode: 'copy'
     publishDir "${inhouse_SV}/CNVkit/CNNfiles/", mode: 'copy', pattern: '*.cnn'
@@ -1130,12 +1026,8 @@ process cnvkit {
     output:
     path("${meta.id}.${genome_version}.cnvkit/*")
     path("*.targetcoverage.cnn"), emit: cnvkit_cnn_out
-//    tuple val(meta), path("${meta.id}.cnvkit/*.call.cns"), emit: CNVcalls
-//    tuple val(meta), path("${meta.id}.cnvkit/*.cnr"), emit: CNVcnr
     tuple val(meta), path("${meta.id}.${genome_version}.cnvkit/*.call.cns"),path("${meta.id}.${genome_version}.cnvkit/*.cnr"), emit: CNVcalls
-    //path("${meta.id}.cnvkit/*.cnn")
-    
-    // touch ${index}
+
     script:
     """
     mv ${aln[1]} intermediate_crai
@@ -1153,21 +1045,18 @@ process cnvkit {
 }
 
 process cnvkitExportFiles {
-    errorStrategy 'ignore'
+    label 'medium'
     tag "$meta.id"
+
     publishDir "${inhouse_SV}/CNVkit/raw_calls/", mode: 'copy', pattern: '*.cnvkit.vcf'
     publishDir "${outputDir}/structuralVariants/cnvkit/", mode: 'copy'
 
     input:
-//    tuple val(meta), path(cnvkit_calls)// from cnvkit_calls_out
-  //  tuple val(meta), path(cnvkit_cnr)// from cnvkit_cnr_out
-
-    tuple val(meta), path(cnvkit_calls),path(cnvkit_cnr)// from cnvkit_calls_out
+    tuple val(meta), path(cnvkit_calls),path(cnvkit_cnr)
 
     output:
     path("*.vcf")
     path("*.seg")
-    //tuple val("${meta.id}"), path("${meta.id}.cnvkit.AFanno.frq_below5pct.vcf"), emit: cnvkitForSVDB
     tuple val(meta), path("${meta.id}.${genome_version}.cnvkit.AFanno.frq_below5pct.vcf"), emit: cnvkitForSVDB
 
     script:
@@ -1198,20 +1087,15 @@ process cnvkitExportFiles {
 
 process merge4callerSVDB {
     tag "$meta.id"
-    errorStrategy 'ignore'
+    label 'low'
 
-    //publishDir "${outputDir}/all_callers_merged/", mode: 'copy'
-   // publishDir "${outputDir}/structuralVariants/SVDB_merged/", mode: 'copy', pattern: "*.4caller.SVDB.merged.*"
     publishDir "${outputDir}/structuralVariants/SVDB_merged/60pctOverlap/", mode: 'copy', pattern: "*.60pctOverlap.*"
     publishDir "${outputDir}/structuralVariants/SVDB_merged/80pctOverlap/", mode: 'copy', pattern: "*.80pctOverlap.*"
     publishDir "${outputDir}/structuralVariants/SVDB_merged/100pctOverlap/", mode: 'copy', pattern: "*.100pctOverlap.*"
 
-    //publishDir "${outputDir}/", mode: 'copy', pattern: '*.vcf'
-    //container 'kfdrc/manta:1.6.0'
-    maxForks 12
     input:
-    // tuple val(meta), path(manta_vcf), path(lumpy_vcf),path(cnvkit_vcf),path(tiddit_vcf) // from single_4caller_for_svdb
     tuple val(meta), path(manta_vcf), path(lumpy_vcf),path(cnvkit_vcf),path(delly_vcf)
+
     output:
     path("${meta.id}.4callerNEW.SVDB.*")
     path("${meta.id}.*.SVDB.*")
@@ -1243,15 +1127,17 @@ process merge4callerSVDB {
 }
 
 process expansionHunter {
-    errorStrategy 'ignore'
+    label 'low'
     tag "$meta.id"
+
     publishDir "${outputDir}/repeatExpansions/expansionHunter/", mode: 'copy'
-    cpus 10
+    
     input:
     tuple val(meta), path(aln)
 
     output:
     path("*.{vcf,json,bam}")
+    
     script:
     """
     /data/shared/programmer/BIN/ExpansionHunter500 \
@@ -1264,8 +1150,10 @@ process expansionHunter {
 }
 
 process stripy {
-    errorStrategy 'ignore'
+    label 'low'
     tag "$meta.id"
+    conda '/lnx01_data3/shared/programmer/miniconda3/envs/py38/' // contains python modules required by stripy
+
     publishDir "${outputDir}/repeatExpansions/STRipy_ALL/", mode: 'copy',pattern:"*.ALL.html"
     publishDir "${outputDir}/repeatExpansions/STRipy_ataksi/", mode: 'copy',pattern:"*.ataksi.html"
     publishDir "${outputDir}/repeatExpansions/STRipy_myotoni/", mode: 'copy',pattern:"*.myotoni.html"
@@ -1274,9 +1162,6 @@ process stripy {
     publishDir "${outputDir}/repeatExpansions/STRipy_myopati/", mode: 'copy',pattern:"*.myopati.html"
     publishDir "${outputDir}/repeatExpansions/STRipy_epilepsi/", mode: 'copy',pattern:"*.epilepsi.html"
 
-    conda '/lnx01_data3/shared/programmer/miniconda3/envs/py38/' // contains python modules required by stripy
-
-    
     input:
     tuple val(meta), path(aln)
 
@@ -1350,13 +1235,12 @@ process stripy {
 
     """
 }
-/*
+
 process prepareManifestSMN {
-    
-    publishDir "${outputDir}/SMNcaller/", mode: 'copy'
-    
+    label 'low'  
+
     input:
-    path(samplesheet) // from smn_input_ch
+    path(samplesheet) 
     
     output:
     path("SMNmanifest.txt")//, emit: SMN_manifest_ch
@@ -1368,57 +1252,10 @@ process prepareManifestSMN {
 }
 
 process smnCopyNumberCaller {
-    publishDir "${outputDir}/SMNcaller/", mode: 'copy'
-    errorStrategy "ignore"
-    cpus 12
-
+    label 'medium'
     conda '/lnx01_data3/shared/programmer/miniconda3/envs/py38/' // contains python modules required by smncopynumbercaller
 
-
-    input:
-    path(manifest)// from SMN_manifest_ch
-
-    output:
-    path("*.{tsv,pdf,json}")
-    
-    script:
-    """
-    python /data/shared/programmer/SMNCopyNumberCaller-1.1.2/smn_caller.py \
-    --manifest ${manifest} \
-    --genome ${smncaller_assembly} \
-    --prefix ${params.rundir} \
-    --threads ${task.cpus} \
-    --outDir .
-
-    python /data/shared/programmer/SMNCopyNumberCaller-1.1.2/smn_charts.py \
-    -s ${params.rundir}.json \
-    -o .
-    """
-}
-*/
-process prepareManifestSMN {
-    
-    //publishDir "${outputDir}/SMNcaller/", mode: 'copy'
-    
-    input:
-    path(samplesheet) // from smn_input_ch
-    
-    output:
-    path("SMNmanifest.txt")//, emit: SMN_manifest_ch
-
-    shell:
-    '''
-    cat !{samplesheet} | cut -f2 > SMNmanifest.txt
-    '''
-}
-
-process smnCopyNumberCaller {
     publishDir "${outputDir}/SMNcallerWGS/", mode: 'copy'
-    errorStrategy "ignore"
-    cpus 12
-
-    conda '/lnx01_data3/shared/programmer/miniconda3/envs/py38/' // contains python modules required by smncopynumbercaller
-
 
     input:
     path(manifest)
@@ -1427,9 +1264,7 @@ process smnCopyNumberCaller {
     path("*.{tsv,pdf,json}")
     
     script:
-    """
-    
-    
+    """    
     python /data/shared/programmer/SMNCopyNumberCaller-1.1.2/smn_caller.py \
     --manifest ${manifest} \
     --genome ${smncaller_assembly} \
@@ -1444,20 +1279,19 @@ process smnCopyNumberCaller {
 }
 
 process vntyper_newRef {
-    errorStrategy 'ignore'
+    label 'high'
+
     publishDir "${outputDir}/MUC1-VNTR_kestrel/", mode: 'copy'
-    cpus 16
 
     input:
     tuple val(meta), path(reads)
 
     output:
-    //tuple val(meta), path("vntyper${meta.id}.vntyper/*")
     tuple val(meta), path("*/*.{tsv,vcf}")
+
     script:
-    
     def reads_command = "--fastq1 ${reads[0]} --fastq2 ${reads[1]}"
-    
+  
     """
     singularity run -B ${s_bind} ${simgpath}/vntyper120.sif \
     -ref ${vntyperREF}/chr1.fa \
@@ -1472,7 +1306,6 @@ process vntyper_newRef {
     -p /data/shared/programmer/vntyper/VNtyper/
     """
 }
-    //-o ${meta.id}.vntyper \
 
 
 
@@ -1505,7 +1338,6 @@ workflow SUB_PREPROCESS {
     markAdapters(fastq_to_ubam.out[0])
     align(markAdapters.out)
     markDup_cram(align.out)
-    //markDup_v3_cram.out.markDup_output
     emit:
     finalAln=markDup_cram.out.markDup_output
 }
@@ -1514,8 +1346,6 @@ workflow SUB_QC {
     meta_aln_index
     main:
     collectWGSmetrics(meta_aln_index)
-    //fastqc_bam(meta_aln_index)
-    //qualimap(meta_aln_index)
     samtools(meta_aln_index)
     //multiQC(samtools.out.multiqc.ifEmpty([]).mix(qualimap.out.multiqc.ifEmpty([])).mix(collectWGSmetrics.out.multiqc.ifEmpty([])))
 
@@ -1714,18 +1544,3 @@ workflow SUB_SMN {
     prepareManifestSMN(smn_input_ch)
     smnCopyNumberCaller(prepareManifestSMN.out)
 }
-/*
-workflow SUB_SMN {
-    take:
-    meta_aln_index //meta, data
-    main:
-    
-    meta_aln_index
-    .map {$meta.id+'\t'+it[1]}
-    .collectFile(name: "smncaller_manifest.txt", newLine: true, storeDir: "${launchDir}/")
-    .set{smn_input_ch}
-    
-    prepareManifestSMN(smn_input_ch)
-    smnCopyNumberCaller(prepareManifestSMN.out)
-}
-*/

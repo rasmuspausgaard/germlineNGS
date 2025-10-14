@@ -54,7 +54,7 @@ switch (params.server) {
         multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
         dataStorage="/lnx01_data3/storage/";
         dataArchive="/lnx01_data2/shared/dataArchive";
-        refFilesDir="/fast/shared/genomes";
+        refFilesDir="/data/shared/genomes";
     break;
 }
 

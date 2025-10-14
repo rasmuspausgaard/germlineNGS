@@ -8,34 +8,34 @@ runID="${date}.${user}"
 
 //Unset parameters
 /*
-params.help                     =false
-params.panel                    =null
-params.samplesheet              =null
-params.preprocessOnly           =null
-params.keepwork                 =null
-params.nomail                   =null
-params.hg38v1                   =null
-params.hg38v2                   =null
-params.cram                     =null
-params.fastq                    =null
-params.spring                   =null
+    params.help                     =false
+    params.panel                    =null
+    params.samplesheet              =null
+    params.preprocessOnly           =null
+    params.keepwork                 =null
+    params.nomail                   =null
+    params.hg38v1                   =null
+    params.hg38v2                   =null
+    params.cram                     =null
+    params.fastq                    =null
+    params.spring                   =null
 
-params.skipJointGenotyping      =null
-params.fastqInput               =null
+    params.skipJointGenotyping      =null
+    params.fastqInput               =null
 
-params.skipSV                   =null
-params.skipVariants             =null
-params.skipQC                   =null
-params.skipSTR                  =null
-params.skipSMN                  =null
-params.subdirs                  =null
-params.gatk                     =null
-params.copyCram                 =null
-params.single                   =null
-//Preset parameters:
+    params.skipSV                   =null
+    params.skipVariants             =null
+    params.skipQC                   =null
+    params.skipSTR                  =null
+    params.skipSMN                  =null
+    params.subdirs                  =null
+    params.gatk                     =null
+    params.copyCram                 =null
+    params.single                   =null
+    //Preset parameters:
 
-params.server                   =null
-params.genome                   = "hg38"
+    params.server                   =null
+    params.genome                   = "hg38"
 */
 params.outdir                   = "${launchDir.baseName}.Results"
 params.rundir                   = "${launchDir.baseName}"

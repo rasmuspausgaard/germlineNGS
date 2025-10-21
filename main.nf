@@ -292,21 +292,6 @@ switch (params.panel) {
 }
 
 
-switch (params.genome) {
-    case 'hg19':
-        WES_ROI                 ="/data/shared/genomes/hg19/interval.files/200108.NCBIrefseq.codingexons.nocontig.20bp.merged.sorted.bed"
-    break;
-    case 'hg38':
-        WES_ROI                 ="/data/shared/genomes/hg38/interval.files/exome.ROIs/211130.hg38.refseq.gencode.fullexons.50bp.SM.bed"
-    break;
-    case 't2t':
-        WES_ROI                 = "/data/shared/genomes/t2t/interval.files/250314.T2T.RefSeq.fullExons+50bp.bed"
-    break;
-
-
-
-}
-
 
 switch (params.genome) {
     case 'hg19':
@@ -615,16 +600,14 @@ if (!params.fastq && !params.fastqInput && !params.spring){
 
 if (params.spring && !params.samplesheet) {
 
-    params.spring_reads="${params.spring}/${reads_pattern_spring}"
+    spring_reads="${params.spring}/${reads_pattern_spring}"
 
 
     Channel
-    .fromPath(params.spring_reads, checkIfExists: true)
+    .fromPath(spring_reads, checkIfExists: true)
     .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
     .set {spring_input_ch}
 }
-
-
 
 
 

@@ -414,13 +414,12 @@ if (params.cram) {
    ON COMPLETE: send email with sample names, etc.
    ----------------------------------------------------------------- */
 workflow.onComplete {
-    // Determine the current year dynamically
+
     def currentYear = new Date().format('yyyy')
-    
-    // Read IP address from file
+
+    // --- Load IP (for lnx02 mail if needed) ---
     def ipFilePath = '/lnx01_data2/shared/testdata/test_scripts/ip_file'
     def ip = ""
-
     if (new File(ipFilePath).exists()) {
         println("IP file exists. Reading IP address.")
         ip = new File(ipFilePath).text.trim()
@@ -430,7 +429,9 @@ workflow.onComplete {
         return
     }
 
-    // AV1-kontrol (chr2:47414420) på VarSeq-VCF
+    // ---------------------------
+    // AV1 chr2:47414420 position check
+    // ---------------------------
     def av1PositionMsg = ""
     def outputDir = "${launchDir}/${launchDir.baseName}.Results"
 
@@ -438,14 +439,17 @@ workflow.onComplete {
         try {
             def variantsDir = new File(outputDir, "Variants")
             if (variantsDir.exists()) {
+
                 def vcfFiles = variantsDir.listFiles()?.findAll { f ->
                     f.name.endsWith("AV1_ALL.hg38.V3.merged.for.VarSeq.vcf.gz") ||
                     f.name.endsWith("AV1_ALL.hg38.V3.merged.for.VarSeq.vcf")
                 } ?: []
 
                 if (!vcfFiles.isEmpty()) {
+
                     def allHits = []
                     vcfFiles.each { f ->
+
                         def cmd = "bcftools query -r chr2:47414420 -f '[%SAMPLE\\t%GT\\n]' '${f.absolutePath}'"
                         def proc = ['bash', '-c', cmd].execute()
                         proc.waitFor()
@@ -455,9 +459,7 @@ workflow.onComplete {
                                 def toks = line.split("\\t")
                                 toks.size() >= 2 && (toks[1] == "0/0" || toks[1] == "./.")
                             }
-                            lines.each { hit ->
-                                allHits << "${f.name}: ${hit}"
-                            }
+                            lines.each { hit -> allHits << "${f.name}: ${hit}" }
                         } else {
                             println "Error running bcftools on ${f.absolutePath}: ${proc.err.text}"
                         }
@@ -465,121 +467,148 @@ workflow.onComplete {
 
                     if (!allHits.isEmpty()) {
                         av1PositionMsg = """
-                        
-                        AV1 check at chr2:47414420
-                        --------------------------
-                        Samples with GT 0/0 or ./.:
-                        ${allHits.collect { " - ${it}" }.join("\n")}
-                        """.stripIndent()
+
+AV1 check at chr2:47414420
+--------------------------
+Samples with GT 0/0 or ./.:
+${allHits.collect { " - ${it}" }.join("\n")}
+""".stripIndent()
                     } else {
-                        println "AV1 check: no 0/0 or ./. at chr2:47414420 for this run"
+                        println "AV1 check: no 0/0 or ./. found"
                     }
                 } else {
-                    println "AV1 check: no VarSeq VCF found in ${variantsDir.absolutePath}"
+                    println "AV1 check: No VarSeq VCF in ${variantsDir.absolutePath}"
                 }
             } else {
-                println "AV1 check: Variants dir not found: ${variantsDir.absolutePath}"
+                println "AV1 check: Variants folder missing"
             }
         }
         catch (Exception e) {
-            println "Exception during AV1 chr2:47414420 check: ${e.message}"
+            println "Exception during AV1 VCF check: ${e.message}"
         }
     }
 
-    // Only send email if --nomail is not specified, the user is mmaj or raspau, and duration > 5 min
-    if (!params.nomail && workflow.duration > 300000 && workflow.success) {
+    // ---------------------------
+    // Run CV6 + GV4 VarSeq pipelines for AV1
+    // ---------------------------
+    if (params.panel == 'AV1' && workflow.success) {
+
+        def cramDate = launchDir.baseName
+
+        // --- CV6 ---
+        try {
+            def cmdCV6 = """
+                cd /lnx01_data2/shared/patients/hg38/panels/2025/${cramDate} &&
+                nextflow run /lnx01_data2/shared/testdata/test_scripts/vspipeline_CV6_nextflow.groovy \
+                --cram_date ${cramDate} \
+                -c /lnx01_data2/shared/users/raspau/varseq_credentials.config.txt
+            """.stripIndent()
+
+            println "[AV1] Running CV6 VarSeq pipeline:\n${cmdCV6}"
+            def p1 = ['bash', '-c', cmdCV6].execute()
+            p1.waitFor()
+
+            if (p1.exitValue() != 0)
+                println "[AV1] CV6 ERROR: ${p1.err.text}"
+            else
+                println "[AV1] CV6 completed OK"
+        }
+        catch (Exception e) {
+            println "[AV1] CV6 Exception: ${e.message}"
+        }
+
+        // --- GV4 ---
+        try {
+            def cmdGV4 = """
+                cd /lnx01_data2/shared/patients/hg38/panels/2025/${cramDate} &&
+                nextflow run /lnx01_data2/shared/testdata/test_scripts/vspipeline_GV4_nextflow.groovy \
+                --cram_date ${cramDate} \
+                -c /lnx01_data2/shared/users/raspau/varseq_credentials.config.txt
+            """.stripIndent()
+
+            println "[AV1] Running GV4 VarSeq pipeline:\n${cmdGV4}"
+            def p2 = ['bash', '-c', cmdGV4].execute()
+            p2.waitFor()
+
+            if (p2.exitValue() != 0)
+                println "[AV1] GV4 ERROR: ${p2.err.text}"
+            else
+                println "[AV1] GV4 completed OK"
+        }
+        catch (Exception e) {
+            println "[AV1] GV4 Exception: ${e.message}"
+        }
+    }
+
+    // ---------------------------
+    // EMAIL — send AFTER CV6 + GV4
+    // ---------------------------
+    if (!params.nomail && workflow.success && workflow.duration > 300000) {
         if (System.getenv("USER") in ["raspau", "mmaj"]) {
-            def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
-                               params.fastq ? new File(params.fastq).getName().take(6) : 'Not provided'
+
+            def sequencingRun =
+                params.cram ? new File(params.cram).getName().take(6) :
+                params.fastq ? new File(params.fastq).getName().take(6) :
+                "Not provided"
 
             def obsSampleMessage = ""
             if (params.panel == "AV1" && params.cram) {
-                def cramDir = new File(params.cram)
-                def obsSamples = cramDir.listFiles()?.findAll { it.name.contains("OBS") } ?: []
-                if (obsSamples.size() > 0) {
-                    obsSampleMessage = "\nTHERE IS AN OBS SAMPLE IN THIS RUN"
-                }
+                def cramFiles = new File(params.cram).listFiles()?.findAll { it.name.contains("OBS") } ?: []
+                if (!cramFiles.isEmpty()) obsSampleMessage = "\nTHERE IS AN OBS SAMPLE IN THIS RUN"
             }
 
-            def workDirMessage = params.keepwork ? "WorkDir: ${workflow.workDir}" : "WorkDir: Deleted"
+            def workDirMessage = params.keepwork ?
+                "WorkDir: ${workflow.workDir}" :
+                "WorkDir: Deleted"
 
             def body = """\
-            Pipeline execution summary
-            ---------------------------
-            Pipeline completed: ${params.panel}
-            Sequencing run: ${sequencingRun}${obsSampleMessage}
-            Duration: ${workflow.duration}
-            Success: ${workflow.success}
-            ${workDirMessage}
-            OutputDir: ${outputDir}
-            Exit status: ${workflow.exitStatus}
-            ${obsSampleMessage}
-            ${av1PositionMsg}
-            """.stripIndent()
+Pipeline execution summary
+---------------------------
+Pipeline completed: ${params.panel}
+Sequencing run: ${sequencingRun}${obsSampleMessage}
+Duration: ${workflow.duration}
+Success: ${workflow.success}
+${workDirMessage}
+OutputDir: ${outputDir}
+Exit status: ${workflow.exitStatus}
+${obsSampleMessage}
+${av1PositionMsg}
 
-            def subject = 'GermlineNGS pipeline Update'
-            def recipients = 'Rasmus.Hojrup.Pausgaard@rsyd.dk'
+(CV6 + GV4 VarSeq pipelines were executed automatically)
+""".stripIndent()
 
-            if (params.server == 'lnx02') {
-                sendMail(to: recipients, subject: subject, body: body)
-            }
-
-            // NYT: kør VarSeq-CNV-nextflow for WGS_CNV-panel
-            if (params.panel == 'AV1' && workflow.success) {
-                try {
-                    def cramDate = launchDir.baseName
-                    def cnvCmd = "cd /lnx01_data2/shared/patients/hg38/panels/2025/${cramDate} && " +
-                                 "nextflow run /lnx01_data2/shared/testdata/test_scripts/vspipeline_CV6_nextflow.groovy " +
-                                 "--cram_date ${cramDate} " +
-                                 "-c /lnx01_data2/shared/users/raspau/varseq_credentials.config.txt"
-                    println "Running CNV VarSeq pipeline: ${cnvCmd}"
-                    def cnvProc = ['bash', '-c', cnvCmd].execute()
-                    cnvProc.waitFor()
-                    if (cnvProc.exitValue() != 0) {
-                        println "Error running CNV VarSeq pipeline: ${cnvProc.err.text}"
-                    } else {
-                        println "CNV VarSeq pipeline finished successfully."
-                    }
-                }
-                catch (Exception e) {
-                    println "Exception when running CNV VarSeq pipeline: ${e.message}"
-                }
-            }
-
-            // Check if --keepwork was specified
-            if (!params.keepwork) {
-                println("Deleting work directory: ${workflow.workDir}")
-                def deleteWorkDirCommand = "rm -rf ${workflow.workDir}".execute()
-                deleteWorkDirCommand.waitFor()
-                if (deleteWorkDirCommand.exitValue() != 0) {
-                    println("Error deleting work directory: ${deleteWorkDirCommand.err.text}")
-                }
-            }
-
-            // Move WGS.CNV from lnx02 to lnx01
-            if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
-                def moveWGSCNVCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
-                def moveWGSCNVProcess = ['bash', '-c', moveWGSCNVCommand].execute()
-                moveWGSCNVProcess.waitFor()
-
-                if (moveWGSCNVProcess.exitValue() != 0) {
-                    println("Error moving WGS_CNV files: ${moveWGSCNVProcess.err.text}")
-                } 
-            }
-
-            // Move WES from lnx02 to lnx01
-            if (params.server == 'lnx02' && params.panel == 'WES' && workflow.success) {
-                def moveWESCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WES_ALM_ONK/${currentYear}/"
-                def moveWESProcess = ['bash', '-c', moveWESCommand].execute()
-                moveWESProcess.waitFor()
-
-                if (moveWESProcess.exitValue() != 0) {
-                    println("Error moving WES files: ${moveWESProcess.err.text}")
-                }
-            }
+            sendMail(
+                to: "Rasmus.Hojrup.Pausgaard@rsyd.dk",
+                subject: "GermlineNGS pipeline Update",
+                body: body
+            )
         }
     }
+
+    // ---------------------------
+    // Cleanup WorkDir
+    // ---------------------------
+    if (!params.keepwork) {
+        println("Deleting work directory: ${workflow.workDir}")
+        def del = "rm -rf ${workflow.workDir}".execute()
+        del.waitFor()
+        if (del.exitValue() != 0)
+            println("WorkDir delete error: ${del.err.text}")
+    }
+
+    // ---------------------------
+    // Move WGS_CNV runs
+    // ---------------------------
+    if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
+        def moveCmd = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
+        def p = ['bash', '-c', moveCmd].execute()
+        p.waitFor()
+        if (p.exitValue() != 0)
+            println("Error moving WGS_CNV files: ${p.err.text}")
+    }
 }
+
+
 
 
 

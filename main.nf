@@ -414,121 +414,158 @@ if (params.cram) {
    ON COMPLETE: send email with sample names, etc.
    ----------------------------------------------------------------- */
 workflow.onComplete {
+    // Determine the current year dynamically
     def currentYear = new Date().format('yyyy')
-
-    // (Optional) If you have an IP file for lnx02 emailing:
+    
+    // Read IP address from file
     def ipFilePath = '/lnx01_data2/shared/testdata/test_scripts/ip_file'
     def ip = ""
-    if (params.server == 'lnx02') {
-        if (new File(ipFilePath).exists()) {
-            ip = new File(ipFilePath).text.trim()
-        } else {
-            println "Warning: IP file not found at ${ipFilePath}, might fail sending email from lnx02."
+
+    if (new File(ipFilePath).exists()) {
+        println("IP file exists. Reading IP address.")
+        ip = new File(ipFilePath).text.trim()
+        println("IP address read from file: ${ip}")
+    } else {
+        println("Error: IP address file not found at ${ipFilePath}")
+        return
+    }
+
+    // Kør AV1-kontrol (chr2:47414420) på VarSeq-VCF
+    def av1PositionMsg = ""
+    // Correctly set the outputDir
+    def outputDir = "${launchDir}/${launchDir.baseName}.Results"
+
+    if (params.panel == 'AV1' && workflow.success) {
+        try {
+            def variantsDir = new File(outputDir, "Variants")
+            if (variantsDir.exists()) {
+                // Find alle AV1 VarSeq-VCF’er for denne kørsel
+                def vcfFiles = variantsDir.listFiles()?.findAll { f ->
+                    f.name.endsWith("AV1_ALL.hg38.V3.merged.for.VarSeq.vcf.gz") ||
+                    f.name.endsWith("AV1_ALL.hg38.V3.merged.for.VarSeq.vcf")
+                } ?: []
+
+                if (!vcfFiles.isEmpty()) {
+                    def allHits = []
+                    vcfFiles.each { f ->
+                        // Hvis der en dag bliver brug for 2:… i stedet, kan vi udvide, men dine filer bruger chr2
+                        def cmd = "bcftools query -r chr2:47414420 -f '[%SAMPLE\\t%GT\\n]' '${f.absolutePath}'"
+                        def proc = ['bash', '-c', cmd].execute()
+                        proc.waitFor()
+
+                        if (proc.exitValue() == 0) {
+                            def lines = proc.in.text.readLines().findAll { line ->
+                                def toks = line.split("\\t")
+                                toks.size() >= 2 && (toks[1] == "0/0" || toks[1] == "./.")
+                            }
+                            lines.each { hit ->
+                                allHits << "${f.name}: ${hit}"
+                            }
+                        } else {
+                            println "Error running bcftools on ${f.absolutePath}: ${proc.err.text}"
+                        }
+                    }
+
+                    if (!allHits.isEmpty()) {
+                        av1PositionMsg = """
+                        
+                        AV1 check at chr2:47414420
+                        --------------------------
+                        Samples with GT 0/0 or ./.:
+                        ${allHits.collect { " - ${it}" }.join("\n")}
+                        """.stripIndent()
+                    } else {
+                        println "AV1 check: no 0/0 or ./. at chr2:47414420 for this run"
+                    }
+                } else {
+                    println "AV1 check: no VarSeq VCF found in ${variantsDir.absolutePath}"
+                }
+            } else {
+                println "AV1 check: Variants dir not found: ${variantsDir.absolutePath}"
+            }
+        }
+        catch (Exception e) {
+            println "Exception during AV1 chr2:47414420 check: ${e.message}"
         }
     }
 
-    // Build the sample names string
-    def sampleNamesString = sampleNamesList.join('\n')
+    // Only send email if --nomail is not specified, the user is mmaj or raspau, and duration is longer than 5 minutes / 300000 milliseconds
+    if (!params.nomail && workflow.duration > 300000 && workflow.success) {
+        if (System.getenv("USER") in ["raspau", "mmaj"]) {
+            def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
+                               params.fastq ? new File(params.fastq).getName().take(6) : 'Not provided'
 
-    // Email conditions: pipeline success, duration > 5 minutes(300000), user is "mmaj" or "raspau", etc.
-    if (!params.nomail && workflow.success && workflow.duration > 3) {
-        if (user in ["mmaj", "raspau"]) {
-
-            // Example: derive "sequencingRun" from the CRAM folder name
-            def sequencingRun = params.cram
-                ? new File(params.cram).getName().take(6)
-                : params.fastq
-                    ? new File(params.fastq).getName().take(6)
-                    : 'Not provided'
-
-            // Check for OBS sample if panel == AV1
+            // Checks if there are OBS samples in the cram folder
             def obsSampleMessage = ""
             if (params.panel == "AV1" && params.cram) {
                 def cramDir = new File(params.cram)
-                def obsSamples = cramDir.listFiles().findAll { it.name.contains("OBS") }
+                def obsSamples = cramDir.listFiles()?.findAll { it.name.contains("OBS") } ?: []
                 if (obsSamples.size() > 0) {
                     obsSampleMessage = "\nTHERE IS AN OBS SAMPLE IN THIS RUN"
                 }
             }
 
             def workDirMessage = params.keepwork ? "WorkDir: ${workflow.workDir}" : "WorkDir: Deleted"
-            def outputDir = "${launchDir}/${launchDir.baseName}.Results"
 
-            def body = """|Pipeline execution summary
-            |---------------------------
-            |Pipeline completed: ${params.panel}
-            |Sequencing run: ${sequencingRun}${obsSampleMessage}
-            |Duration: ${workflow.duration}
-            |Success: ${workflow.success}
-            |${workDirMessage}
-            |OutputDir: ${outputDir}
-            |Exit status: ${workflow.exitStatus}
-            |${obsSampleMessage}
-            |
-            |Samples included in the pipeline:
-            |${sampleNamesString}
-            """.stripMargin('|')
+            // Her bruger vi outputDir fra ovenfor
 
+            def body = """\
+            Pipeline execution summary
+            ---------------------------
+            Pipeline completed: ${params.panel}
+            Sequencing run: ${sequencingRun}${obsSampleMessage}
+            Duration: ${workflow.duration}
+            Success: ${workflow.success}
+            ${workDirMessage}
+            OutputDir: ${outputDir}
+            Exit status: ${workflow.exitStatus}
+            ${obsSampleMessage}
+            ${av1PositionMsg}
+            """.stripIndent()
 
-            // Example recipients
-            def recipients = 'Rasmus.Hojrup.Pausgaard@rsyd.dk'
+            // Construct the email sending command
+            def subject = 'GermlineNGS pipeline Update'
+            def recipients = 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk,Amalie.Schirmer.Ahlgreen.Larsen@rsyd.dk,Sara.Kaczor.Elbaek@rsyd.dk'
 
-            // Send mail depending on server
-            if (params.server == 'lnx01') {
-                // Nextflow's built-in mail
-                sendMail(to: recipients, subject: 'CRAM-based pipeline Update', body: body)
+            if (params.server == 'lnx02') {
+                // Use Nextflow's built-in sendMail function when on lnx01
+                sendMail(to: recipients, subject: subject, body: body)
             }
-            else if (params.server == 'lnx02') {
-                // Use external command
-                def emailCommand = "ssh ${ip} 'echo \"${body}\" | mail -s \"CRAM-based pipeline Update\" ${recipients}'"
-                def proc = ['bash', '-c', emailCommand].execute()
-                proc.waitFor()
-                if (proc.exitValue() != 0) {
-                    println("Error sending email from lnx02: ${proc.err.text}")
-                } else {
-                    println("Email successfully sent from lnx02.")
+
+            // Check if --keepwork was specified
+            if (!params.keepwork) {
+                // If --keepwork was not specified, delete the work directory
+                println("Deleting work directory: ${workflow.workDir}")
+                def deleteWorkDirCommand = "rm -rf ${workflow.workDir}".execute()
+                deleteWorkDirCommand.waitFor()
+                if (deleteWorkDirCommand.exitValue() != 0) {
+                    println("Error deleting work directory: ${deleteWorkDirCommand.err.text}")
                 }
             }
 
-            // Move WGS_CNV from lnx02 to lnx01 if success
+            // Move WGS.CNV from lnx02 to lnx01
             if (params.server == 'lnx02' && params.panel == 'WGS_CNV' && workflow.success) {
-                def moveWGSCNVCommand = "rsync -a --exclude='work/' ${launchDir}/ /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
+                def moveWGSCNVCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/"
                 def moveWGSCNVProcess = ['bash', '-c', moveWGSCNVCommand].execute()
                 moveWGSCNVProcess.waitFor()
+
                 if (moveWGSCNVProcess.exitValue() != 0) {
                     println("Error moving WGS_CNV files: ${moveWGSCNVProcess.err.text}")
-                }
+                } 
             }
 
-            // Move WGS_NGC from lnx02 to lnx01 if success
-            if (params.server == 'lnx02' && params.panel == 'NGC' && workflow.success) {
-                def moveWGSNGCCommand = "rsync -a --exclude='work/' ${launchDir}/ /lnx01_data2/shared/patients/hg38/WGS_NGC/${currentYear}/"
-                def moveWGSNGCProcess = ['bash', '-c', moveWGSNGCCommand].execute()
-                moveWGSNGCProcess.waitFor()
-                if (moveWGSNGCProcess.exitValue() != 0) {
-                    println("Error moving WGS_NGC files: ${moveWGSNGCProcess.err.text}")
-                }
-            }
-
-            // Move WES from lnx02 to lnx01 if success
+            // Move WES from lnx02 to lnx01
             if (params.server == 'lnx02' && params.panel == 'WES' && workflow.success) {
-                def moveWESCommand = "rsync -a --exclude='work/' ${launchDir}/ /lnx01_data2/shared/patients/hg38/WES_ALM_ONK/${currentYear}/"
+                def moveWESCommand = "mv ${launchDir} /lnx01_data2/shared/patients/hg38/WES_ALM_ONK/${currentYear}/"
                 def moveWESProcess = ['bash', '-c', moveWESCommand].execute()
                 moveWESProcess.waitFor()
+
                 if (moveWESProcess.exitValue() != 0) {
                     println("Error moving WES files: ${moveWESProcess.err.text}")
                 }
             }
         }
     }
-
-    // Delete work directory if not keeping it
-    if (!params.keepwork) {
-        println("Deleting work directory: ${workflow.workDir}")
-        def deleteWorkDirCommand = "rm -rf ${workflow.workDir}".execute()
-        deleteWorkDirCommand.waitFor()
-        if (deleteWorkDirCommand.exitValue() != 0) {
-            println("Error deleting work directory: ${deleteWorkDirCommand.err.text}")
-        }
-    }
 }
+
+

@@ -614,7 +614,6 @@ Exit status: ${workflow.exitStatus}
 ${obsSampleMessage}
 ${av1PositionMsg}
 
-(VarSeq pipelines for this panel were executed.)
 """.stripIndent()
 
             sendMail(
@@ -647,6 +646,7 @@ ${av1PositionMsg}
             println("Error moving WGS_CNV files: ${mv.err.text}")
     }
 }
+
 
 
 

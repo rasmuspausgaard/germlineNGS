@@ -518,7 +518,7 @@ workflow.onComplete {
             """.stripIndent()
 
             def subject = 'GermlineNGS pipeline Update'
-            def recipients = 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk,Amalie.Schirmer.Ahlgreen.Larsen@rsyd.dk,Sara.Kaczor.Elbaek@rsyd.dk'
+            def recipients = 'Rasmus.Hojrup.Pausgaard@rsyd.dk'
 
             if (params.server == 'lnx02') {
                 sendMail(to: recipients, subject: subject, body: body)
@@ -580,6 +580,7 @@ workflow.onComplete {
         }
     }
 }
+
 
 
 

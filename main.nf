@@ -525,7 +525,7 @@ workflow.onComplete {
 
             // Construct the email sending command
             def subject = 'GermlineNGS pipeline Update'
-            def recipients = 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk,Amalie.Schirmer.Ahlgreen.Larsen@rsyd.dk,Sara.Kaczor.Elbaek@rsyd.dk'
+            def recipients = 'Rasmus.Hojrup.Pausgaard@rsyd.dk'
 
             if (params.server == 'lnx02') {
                 // Use Nextflow's built-in sendMail function when on lnx01
@@ -567,5 +567,6 @@ workflow.onComplete {
         }
     }
 }
+
 
 

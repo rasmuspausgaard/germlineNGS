@@ -517,6 +517,28 @@ ${allHits.collect { " - ${it}" }.join("\n")}
             println "[AV1] CV6 Exception: ${e.message}"
         }
 
+        // --- NV2 ---
+        try {
+            def cmdNV2 = """
+                cd /lnx01_data2/shared/patients/hg38/panels/2025/${cramDate} &&
+                nextflow run /lnx01_data2/shared/testdata/test_scripts/vspipeline_NV2_nextflow.groovy \
+                --cram_date ${cramDate} \
+                -c /lnx01_data2/shared/users/raspau/varseq_credentials.config.txt
+            """.stripIndent()
+
+            println "[AV1] Running NV2 VarSeq pipeline:\n${cmdNV2}"
+            def p1 = ['bash', '-c', cmdNV2].execute()
+            p1.waitFor()
+
+            if (p1.exitValue() != 0)
+                println "[AV1] NV2 ERROR: ${p1.err.text}"
+            else
+                println "[AV1] NV2 completed OK"
+        }
+        catch (Exception e) {
+            println "[AV1] NV2 Exception: ${e.message}"
+        }
+
         // --- GV4 ---
         try {
             def cmdGV4 = """
@@ -607,6 +629,7 @@ ${av1PositionMsg}
             println("Error moving WGS_CNV files: ${p.err.text}")
     }
 }
+
 
 
 

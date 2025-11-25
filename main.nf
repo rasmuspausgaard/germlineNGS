@@ -618,7 +618,7 @@ ${av1PositionMsg}
 """.stripIndent()
 
             sendMail(
-                to: "Rasmus.Hojrup.Pausgaard@rsyd.dk",
+                to: "Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk,Amalie.Schirmer.Ahlgreen.Larsen@rsyd.dk,Sara.Kaczor.Elbaek@rsyd.dk,
                 subject: "GermlineNGS pipeline Update",
                 body: body
             )
@@ -647,6 +647,7 @@ ${av1PositionMsg}
             println("Error moving WGS_CNV files: ${mv.err.text}")
     }
 }
+
 
 
 

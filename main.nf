@@ -430,16 +430,14 @@ workflow.onComplete {
         return
     }
 
-    // Kør AV1-kontrol (chr2:47414420) på VarSeq-VCF
+    // AV1-kontrol (chr2:47414420) på VarSeq-VCF
     def av1PositionMsg = ""
-    // Correctly set the outputDir
     def outputDir = "${launchDir}/${launchDir.baseName}.Results"
 
     if (params.panel == 'AV1' && workflow.success) {
         try {
             def variantsDir = new File(outputDir, "Variants")
             if (variantsDir.exists()) {
-                // Find alle AV1 VarSeq-VCF’er for denne kørsel
                 def vcfFiles = variantsDir.listFiles()?.findAll { f ->
                     f.name.endsWith("AV1_ALL.hg38.V3.merged.for.VarSeq.vcf.gz") ||
                     f.name.endsWith("AV1_ALL.hg38.V3.merged.for.VarSeq.vcf")
@@ -448,7 +446,6 @@ workflow.onComplete {
                 if (!vcfFiles.isEmpty()) {
                     def allHits = []
                     vcfFiles.each { f ->
-                        // Hvis der en dag bliver brug for 2:… i stedet, kan vi udvide, men dine filer bruger chr2
                         def cmd = "bcftools query -r chr2:47414420 -f '[%SAMPLE\\t%GT\\n]' '${f.absolutePath}'"
                         def proc = ['bash', '-c', cmd].execute()
                         proc.waitFor()
@@ -489,13 +486,12 @@ workflow.onComplete {
         }
     }
 
-    // Only send email if --nomail is not specified, the user is mmaj or raspau, and duration is longer than 5 minutes / 300000 milliseconds
+    // Only send email if --nomail is not specified, the user is mmaj or raspau, and duration > 5 min
     if (!params.nomail && workflow.duration > 300000 && workflow.success) {
         if (System.getenv("USER") in ["raspau", "mmaj"]) {
             def sequencingRun = params.cram ? new File(params.cram).getName().take(6) :
                                params.fastq ? new File(params.fastq).getName().take(6) : 'Not provided'
 
-            // Checks if there are OBS samples in the cram folder
             def obsSampleMessage = ""
             if (params.panel == "AV1" && params.cram) {
                 def cramDir = new File(params.cram)
@@ -506,8 +502,6 @@ workflow.onComplete {
             }
 
             def workDirMessage = params.keepwork ? "WorkDir: ${workflow.workDir}" : "WorkDir: Deleted"
-
-            // Her bruger vi outputDir fra ovenfor
 
             def body = """\
             Pipeline execution summary
@@ -523,18 +517,37 @@ workflow.onComplete {
             ${av1PositionMsg}
             """.stripIndent()
 
-            // Construct the email sending command
             def subject = 'GermlineNGS pipeline Update'
             def recipients = 'Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk,Amalie.Schirmer.Ahlgreen.Larsen@rsyd.dk,Sara.Kaczor.Elbaek@rsyd.dk'
 
             if (params.server == 'lnx02') {
-                // Use Nextflow's built-in sendMail function when on lnx01
                 sendMail(to: recipients, subject: subject, body: body)
+            }
+
+            // NYT: kør VarSeq-CNV-nextflow for WGS_CNV-panel
+            if (params.panel == 'AV1' && workflow.success) {
+                try {
+                    def cramDate = launchDir.baseName
+                    def cnvCmd = "cd /lnx01_data2/shared/patients/hg38/panels/2025/${cramDate} && " +
+                                 "nextflow run /lnx01_data2/shared/testdata/test_scripts/vspipeline_CV6_nextflow.groovy " +
+                                 "--cram_date ${cramDate} " +
+                                 "-c /lnx01_data2/shared/users/raspau/varseq_credentials.config.txt"
+                    println "Running CNV VarSeq pipeline: ${cnvCmd}"
+                    def cnvProc = ['bash', '-c', cnvCmd].execute()
+                    cnvProc.waitFor()
+                    if (cnvProc.exitValue() != 0) {
+                        println "Error running CNV VarSeq pipeline: ${cnvProc.err.text}"
+                    } else {
+                        println "CNV VarSeq pipeline finished successfully."
+                    }
+                }
+                catch (Exception e) {
+                    println "Exception when running CNV VarSeq pipeline: ${e.message}"
+                }
             }
 
             // Check if --keepwork was specified
             if (!params.keepwork) {
-                // If --keepwork was not specified, delete the work directory
                 println("Deleting work directory: ${workflow.workDir}")
                 def deleteWorkDirCommand = "rm -rf ${workflow.workDir}".execute()
                 deleteWorkDirCommand.waitFor()
@@ -567,6 +580,7 @@ workflow.onComplete {
         }
     }
 }
+
 
 
 

@@ -413,6 +413,9 @@ if (params.cram) {
 /* -----------------------------------------------------------------
    ON COMPLETE: send email with sample names, etc.
    ----------------------------------------------------------------- */
+/* -----------------------------------------------------------------
+   ON COMPLETE: send email with sample names, etc.
+   ----------------------------------------------------------------- */
 workflow.onComplete {
 
     def currentYear = new Date().format('yyyy')
@@ -495,9 +498,9 @@ ${allHits.collect { " - ${it}" }.join("\n")}
         // --- CV6 ---
         try {
             def cmdCV6 = """
-                cd /lnx01_data2/shared/patients/hg38/panels/2025/${cramDate} &&
-                nextflow run /lnx01_data2/shared/testdata/test_scripts/vspipeline_CV6_nextflow.groovy \
-                --cram_date ${cramDate} \
+                cd /lnx01_data2/shared/patients/hg38/panels/${currentYear}/${cramDate} &&
+                nextflow run /lnx01_data2/shared/testdata/test_scripts/vspipeline_CV6_nextflow.groovy \\
+                --cram_date ${cramDate} \\
                 -c /lnx01_data2/shared/users/raspau/varseq_credentials.config.txt
             """.stripIndent()
 
@@ -515,9 +518,9 @@ ${allHits.collect { " - ${it}" }.join("\n")}
         // --- NV2 ---
         try {
             def cmdNV2 = """
-                cd /lnx01_data2/shared/patients/hg38/panels/2025/${cramDate} &&
-                nextflow run /lnx01_data2/shared/testdata/test_scripts/vspipeline_NV2_nextflow.groovy \
-                --cram_date ${cramDate} \
+                cd /lnx01_data2/shared/patients/hg38/panels/${currentYear}/${cramDate} &&
+                nextflow run /lnx01_data2/shared/testdata/test_scripts/vspipeline_NV2_nextflow.groovy \\
+                --cram_date ${cramDate} \\
                 -c /lnx01_data2/shared/users/raspau/varseq_credentials.config.txt
             """.stripIndent()
 
@@ -535,9 +538,9 @@ ${allHits.collect { " - ${it}" }.join("\n")}
         // --- GV4 ---
         try {
             def cmdGV4 = """
-                cd /lnx01_data2/shared/patients/hg38/panels/2025/${cramDate} &&
-                nextflow run /lnx01_data2/shared/testdata/test_scripts/vspipeline_GV4_nextflow.groovy \
-                --cram_date ${cramDate} \
+                cd /lnx01_data2/shared/patients/hg38/panels/${currentYear}/${cramDate} &&
+                nextflow run /lnx01_data2/shared/testdata/test_scripts/vspipeline_GV4_nextflow.groovy \\
+                --cram_date ${cramDate} \\
                 -c /lnx01_data2/shared/users/raspau/varseq_credentials.config.txt
             """.stripIndent()
 
@@ -562,9 +565,9 @@ ${allHits.collect { " - ${it}" }.join("\n")}
 
         try {
             def cmdCNV = """
-                cd /lnx01_data2/shared/patients/hg38/WGS.CNV/2025/${cramDate} &&
-                nextflow run /lnx01_data2/shared/testdata/test_scripts/vspipeline_CNV_nextflow.groovy \
-                --cram_date ${cramDate} \
+                cd /lnx01_data2/shared/patients/hg38/WGS.CNV/${currentYear}/${cramDate} &&
+                nextflow run /lnx01_data2/shared/testdata/test_scripts/vspipeline_CNV_nextflow.groovy \\
+                --cram_date ${cramDate} \\
                 -c /lnx01_data2/shared/users/raspau/varseq_credentials.config.txt
             """.stripIndent()
 
@@ -593,8 +596,12 @@ ${allHits.collect { " - ${it}" }.join("\n")}
 
             def obsSampleMessage = ""
             if (params.panel == "AV1" && params.cram) {
-                def obs = new File(params.cram).listFiles()?.findAll { it.name.contains("OBS") } ?: []
-                if (!obs.isEmpty()) obsSampleMessage = "\nTHERE IS AN OBS SAMPLE IN THIS RUN"
+                def cramFile = new File(params.cram)
+                def cramDir = cramFile.parentFile
+                def obs = cramDir?.listFiles()?.findAll { it.name.contains("OBS") } ?: []
+                if (!obs.isEmpty()) {
+                    obsSampleMessage = "\nTHERE IS AN OBS SAMPLE IN THIS RUN"
+                }
             }
 
             def workDirMessage = params.keepwork ?
@@ -611,13 +618,12 @@ Success: ${workflow.success}
 ${workDirMessage}
 OutputDir: ${outputDir}
 Exit status: ${workflow.exitStatus}
-${obsSampleMessage}
 ${av1PositionMsg}
 
 """.stripIndent()
 
             sendMail(
-                to: "Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk,Amalie.Schirmer.Ahlgreen.Larsen@rsyd.dk,Sara.Kaczor.Elbaek@rsyd.dk"
+                to: "Andreas.Braae.Holmgaard@rsyd.dk,Annabeth.Hogh.Petersen@rsyd.dk,Isabella.Almskou@rsyd.dk,Jesper.Graakjaer@rsyd.dk,Lene.Bjornkjaer@rsyd.dk,Martin.Sokol@rsyd.dk,Mads.Jorgensen@rsyd.dk,Rasmus.Hojrup.Pausgaard@rsyd.dk,Signe.Skou.Tofteng@rsyd.dk,Amalie.Schirmer.Ahlgreen.Larsen@rsyd.dk,Sara.Kaczor.Elbaek@rsyd.dk",
                 subject: "GermlineNGS pipeline Update",
                 body: body
             )
@@ -646,16 +652,3 @@ ${av1PositionMsg}
             println("Error moving WGS_CNV files: ${mv.err.text}")
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

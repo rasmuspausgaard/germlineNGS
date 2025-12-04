@@ -1,21 +1,33 @@
 # KG Vejle Germline pipeline
 
+## New in version 2:
+1. Added support for SLURM execution (see below for details)
+2. Removed support for old servers (lnx01 and kga01 deprecated)
+
+
 ## General info:
-This pipeline is used for the following NGS designs at KG Vejle:
+This pipeline is only intended for the following NGS designs at KG Vejle, and will only work at the KG Vejle computational servers:
 1. Panels (AV1, MV1 and CV5 currently supported)
 2. WES
 3. WGS & WGS CNV
 
+The pipeline takes mapped data (CRAM files) or raw data (fastq) as input.
+Hg38 (local version 3) assembly is used by default. Hg19 is no longer supported. 
 
-The script takes mapped data (CRAM files) or raw data (fastq) as input.
-Hg38 (v3) assembly is used by default. Hg19 is no longer supported. 
-
-
+NOTE: This pipeline can be run from single server nodes (e.g. lnx02, rgi01 etc.) as usual, or using SLURM, if the user has been added to the SLURM user group at KG Vejle. 
 
 # Usage
 
 The tools used and output generated depends on how the pipeline is run, i.e. if it is used for panels or WGS. See below for instructions.
 
+# Local or SLURM execution
+By default, the pipeline will be executed on the server from where it was started (i.e. "local" execution). This is recommended for e.g. panel analysis.
+
+For larger or more computationally intensive executions (e.g. WGS), it is recommended to run the pipeline using SLURM execution.
+
+# Requirements for SLURM execution
+1. The user must login to the SLURM loginnode (headnode), and execute the pipeline from there.
+2. The user simply adds the optional parameter "-profile slurm" to commandline when executing the pipeline (see below for a few examples)
 
 
 ## Panels (AV1, CV5, WES)
@@ -27,8 +39,6 @@ Analysis steps:
 - For AV1 panels and WES (ALM and ONK), joint genotyping is also run per subpanel.
 
 NOTE: CRAM should be used as input, if possible.
-
-NOTE: This pipeline can be run from both servers (lnx1 and lnx02). The script assumes that the analysis is run on the lnx01 server by default. Change to lnx02 with --server lnx02
 
 
 #### Run the pipeline with --help to see available options and default parameters:
@@ -43,6 +53,11 @@ For panel analysis, the user must use either --cram /path/to/cram/ or --fastq /p
 #### Analyze AV1 samples, starting with cram
    
     nextflow run KGVejle/germlineNGS -r main --panel AV1 --cram /path/to/cram/
+
+
+#### Analyze AV1 samples, starting with cram, using SLURM (see SLURM requirements):
+   
+    nextflow run KGVejle/germlineNGS -r main --panel AV1 --cram /path/to/cram/ -profile slurm
 
 #### Analyze AV1 samples, starting with fastq
    
@@ -63,10 +78,10 @@ Input for the MV1 analysis is always fastq
 
 ### Common use cases:
 
-#### Analyze MV1 samples from the lnx01 server (default)
+#### Analyze MV1 samples from the current serverlogin (regardless of servernode)
     nextflow run KGVejle/germlineNGS -r main --panel MV1 --fastq /path/to/fastq/
 
-#### Analyze MV1 samples from the lnx02 server
+#### Analyze MV1 samples from specific server (here lnx02)
     nextflow run KGVejle/germlineNGS -r main --panel MV1 --fastq /path/to/fastq/ --server lnx02
 
 ## WGS
@@ -111,6 +126,10 @@ Submodules can be disabled at command line.
 
     nextflow run KGVejle/germlineNGS -r main --panel WGS_CNV --cram /path/to/cram/
 
+#### Analyze WGS CNV, starting from cram, using SLURM (see SLURM requirements):
+
+    nextflow run KGVejle/germlineNGS -r main --panel WGS_CNV --cram /path/to/cram/ -profile slurm
+
 #### Analyze WGS CNV, starting from cram:
 
     nextflow run KGVejle/germlineNGS -r main --panel WGS_CNV --cram /path/to/cram/
@@ -118,6 +137,11 @@ Submodules can be disabled at command line.
 #### Analyze samples in samplesheet, starting with CRAM. Run full pipeline:
    
     nextflow run KGVejle/germlineNGS -r main --samplesheet /path/to/samplesheet/
+
+#### Analyze samples in samplesheet, starting with CRAM. Run full pipeline, using SLURM (see SLURM requirements)::
+   
+    nextflow run KGVejle/germlineNGS -r main --samplesheet /path/to/samplesheet/ -profile slurm
+
 
 
 #### Analyze samples in samplesheet, starting with fastq:

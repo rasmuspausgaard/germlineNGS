@@ -6,39 +6,39 @@ date=new Date().format( 'yyMMdd' )
 user="$USER"
 runID="${date}.${user}"
 
-
 //Unset parameters
-params.help                     =false
-params.panel                    =null
-params.samplesheet              =null
-params.preprocessOnly           =null
-params.keepwork                 =null
-params.nomail                   =null
-params.hg38v1                   =null
-params.hg38v2                   =null
-params.cram                     =null
-params.fastq                    =null
-params.spring                   =null
-params.archiveStorage           =null
-params.lnx01_storage            =null
-params.skipSpliceAI             =null
-params.skipJointGenotyping      =null
-params.fastqInput               =null
-params.skipSV                   =null
-params.skipVariants             =null
-params.skipQC                   =null
-params.skipSTR                  =null
-params.skipSMN                  =null
-//Preset parameters:
-params.gatk                     =null
-params.copyCram                 =null
-params.single                   =null
-params.server                   =null
-params.genome                   = "hg38"
+/*
+    params.help                     =false
+    params.panel                    =null
+    params.samplesheet              =null
+    params.preprocessOnly           =null
+    params.keepwork                 =null
+    params.nomail                   =null
+    params.hg38v1                   =null
+    params.hg38v2                   =null
+    params.cram                     =null
+    params.fastq                    =null
+    params.spring                   =null
+
+    params.skipJointGenotyping      =null
+    params.fastqInput               =null
+
+    params.skipSV                   =null
+    params.skipVariants             =null
+    params.skipQC                   =null
+    params.skipSTR                  =null
+    params.skipSMN                  =null
+    params.subdirs                  =null
+    params.gatk                     =null
+    params.copyCram                 =null
+    params.single                   =null
+    //Preset parameters:
+
+    params.server                   =null
+    params.genome                   = "hg38"
+*/
 params.outdir                   = "${launchDir.baseName}.Results"
 params.rundir                   = "${launchDir.baseName}"
-//params.intervals_list           ="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/wgs_splitinterval_BWI_subdivision3/*.interval_list";
-
 
 
 def helpMessage() {
@@ -62,7 +62,7 @@ def helpMessage() {
 
     If the inputdata (FastQ or CRAM) have been transferred to the data archive (which it is by default), the script will automatically find the relevant inputdata  and create symlinks for them in the output (results) directory.
 
-    The script will automatically look for FastQ or CRAM files in subfolders at /lnx01_data2/shared/dataArchive/. This location contains read-only access to the data archive, containing all FastQ and CRAM files. There's no need to copy or move any data.
+    The script will automatically look for FastQ or CRAM files in subfolders at KG Vejles dataarchive. This location contains read-only access to the data archive, containing all FastQ and CRAM files. There's no need to copy or move any data.
 
     The user can point to a specific folder containing raw data (FastQ) using the --fastq option  or alignment data (CRAM) using the --cram option
     This is only needed if input data (FastQ or CRAM) exists outside the data archive (e.g. if data are in personal folders), or if the script is run without samplesheet.
@@ -71,6 +71,8 @@ def helpMessage() {
 
     Main options:
       --help            Print this help message
+
+
       
       --genome          hg19 or hg38
                             Default: hg38 v3 (masked + decoys)
@@ -80,7 +82,7 @@ def helpMessage() {
       --hg38v2          Use hg38 v2 (ucsc.hg38.NGS.analysisSet.fa).
 
       --gatk            "danak" (v.4.1.9) or "new" (v.4.4.0.0)
-                            Default: danak  
+                            Default: danak for AV1, "new" for WGS and WES  
       
       --samplesheet     Path to samplesheet for samples to be analyzed (Only required for WGS analysis)
       
@@ -122,6 +124,10 @@ def helpMessage() {
 
       --skipSMN         Do not call SMN1 and SMN2 variants
                             Default: Call SMN variants with SMNCopyNumberCaller
+      
+    SLURM execution:
+      -profile slurm    Run the script using SLURM execution
+                            Default: Not set - run the script on the current server
 
     """.stripIndent()
 }
@@ -146,7 +152,6 @@ def FastqCRAM_error() {
 }
 
 if (params.cram && params.fastq) exit 0, FastqCRAM_error()
-
 
 
 switch (params.gatk) {
@@ -205,22 +210,26 @@ switch (params.server) {
 
 /*
 switch (params.server) {
-    case 'lnx02':
-       // modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules";
-        //subworkflow_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows";
-        dataArchive="/lnx01_data2/shared/dataArchive";
-    break;
 
     case 'lnx01':
-        modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules";
-        subworkflow_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows";
-        dataArchive="/lnx01_data2/shared/dataArchive";
+        s_bind                  ="/data/:/data/,/lnx01_data2/:/lnx01_data2/,/lnx01_data3/:/lnx01_data3/";
+        simgpath                ="/data/shared/programmer/simg";
+        tmpDIR                  ="/data/TMP/TMP.${user}/";
+        gatk_exec               ="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
+        multiqc_config          ="/data/shared/programmer/configfiles/multiqc_config.yaml"
+        dataStorage             ="/lnx01_data3/storage/";
+        dataArchive             ="/lnx01_data2/shared/dataArchive";
+        refFilesDir             ="/data/shared/genomes";
     break;
-    case 'kga01':
-        modules_dir="/home/mmaj/LNX01_mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules";
-        subworkflow_dir="/home/mmaj/LNX01_mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows";
-        dataArchive="/data/shared/dataArchive";
 
+    default:
+        s_bind                  ="/data/:/data/,/lnx01_data2/:/lnx01_data2/,/fast/:/fast/,/lnx01_data3/:/lnx01_data3/,/lnx01_data4/:/lnx01_data4/";
+        simgpath                ="/data/shared/programmer/simg";
+        tmpDIR                  ="/fast/TMP/TMP.${user}/";
+        gatk_exec               ="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
+        dataStorage             ="/lnx01_data3/storage/";
+        dataArchive             ="/lnx01_data2/shared/dataArchive";
+        refFilesDir             ="/fast/shared/genomes";
     break;
 }
 */
@@ -260,9 +269,9 @@ switch (params.panel) {
     break;
 
     case "MV1":
-        reads_pattern_cram="*{MV1}*.cram";
-        reads_pattern_crai="*{MV1}*.crai";
-        reads_pattern_fastq="*{MV1}*R{1,2}*{fq,fastq}.gz";
+        reads_pattern_cram="*{.,-,_}{MV1}{.,-,_}*.cram";
+        reads_pattern_crai="*{.,-,_}{MV1}{.,-,_}*.crai";
+        reads_pattern_fastq="*{.,-,_}{MV1}{.,-,_}*R{1,2}*{fq,fastq}.gz";
         reads_pattern_spring="*MV1*.spring";
         panelID="MV1"
     break;
@@ -292,132 +301,332 @@ switch (params.panel) {
     break;
 
     case "NGC":
-        reads_pattern_cram="*{-,.,_}{WG4_NGC,WGSNGC}{-,.,_}*.cram";
-        reads_pattern_crai="*{-,.,_}{WG4_NGC,WGSNGC}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{WG4_NGC,WGSNGC}{-,.,_}*R{1,2}*{fq,fastq}.gz";
-        reads_pattern_spring="*{WG4_NGC,WGSNGC}*.spring";
+        reads_pattern_cram="*{-,.,_}{WG4_NGC,WGS,NGCWGS,WGSNGC}{-,.,_}*.cram";
+        reads_pattern_crai="*{-,.,_}{WG4_NGC,WGS,NGCWGS,WGSNGC}{-,.,_}*.crai";
+        reads_pattern_fastq="**{-,.,_}{WG4_NGC,WGS,NGCWGS,WGSNGC}{-,.,_}*R{1,2}{_,.,-}*{fq,fastq}.gz";
+        reads_pattern_spring="*{WG4_NGC,WGS,NGCWGS}*.spring";
+        panelID="WGS"
+    break;
+    case "WGS_ALL":
+        reads_pattern_cram="*{-,.,_}{WG4,WG4_NGC,WGS,NGCWGS,WGSNGC,extWGS}{-,.,_}*.cram";
+        reads_pattern_crai="*{-,.,_}{WG4,WG4_NGC,WGS,NGCWGS,WGSNGC,extWGS}{-,.,_}*.crai";
+        reads_pattern_fastq="**{-,.,_}{WG4,WG4_NGC,WGS,NGCWGS,WGSNGC,extWGS}{-,.,_}*R{1,2}{_,.,-}*{fq,fastq}.gz";
+        reads_pattern_spring="*{WG4,WG4_NGC,WGS,NGCWGS,WGSNGC,extWGS}*.spring";
         panelID="WGS"
     break;
 
+
+    //params.reads="${params.fastq}/*{.,_,-}{R1,R2}*.gz"
     default: 
-        reads_pattern_cram="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged,WG4_NGC,WGSNGC,extWGS}{-,.,_}*.cram";
-        reads_pattern_crai="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged,WG4_NGC,WGSNGC,extWGS}{-,.,_}*.crai";
-        reads_pattern_fastq="*{-,.,_}{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged,WG4_NGC,WGSNGC,extWGS}{-,.,_}*R{1,2}*{fq,fastq}.gz";
-        reads_pattern_spring="*{WG3,WG4,A_WG4,LIB,WG4_CNV,WGSmerged,WGS,nova,WG4_NGC,WGSNGC,extWGS}*.spring";
+        reads_pattern_cram="*.cram";
+        reads_pattern_crai="*.crai";
+        reads_pattern_fastq="*{.,_,-}{R1,R2}*.gz";
+        reads_pattern_spring="*.spring";
         panelID="WGS"
     break;
 }
 
 
 
-////////////////////////////////////////////////////
-////// INPUT DATA (fastq or CRAM) channels //////////
-////////////////////////////////////////////////////
-/*
-if (params.fastq) {
-    params.reads="${params.fastq}/${reads_pattern_fastq}"
+switch (params.genome) {
+    case 'hg19':
+        assembly="hg19"
+        // Genome assembly files:
+        genome_fasta = "/data/shared/genomes/hg19/human_g1k_v37.fasta"
+        genome_fasta_fai = "/data/shared/genomes/hg19/human_g1k_v37.fasta.fai"
+        genome_fasta_dict = "/data/shared/genomes/hg19/human_g1k_v37.dict"
+        genome_version="V1"
+        break;
+
+
+    case 'hg38':
+        assembly="hg38"
+        spliceai_assembly="grch38"
+        smncaller_assembly="38"
+
+        // Genome assembly files:
+        if (params.hg38v1) {
+            genome_fasta = "${refFilesDir}/hg38/GRCh38.primary.fa"
+            genome_fasta_fai = "${refFilesDir}/hg38/GRCh38.primary.fa.fai"
+            genome_fasta_dict = "${refFilesDir}/hg38/GRCh38.primary.dict"
+            genome_version="hg38v1"
+            cnvkit_germline_reference_PON="/data/shared/genomes/hg38/inhouse_DBs/hg38v1_primary/cnvkit/wgs_germline_PON/jgmr_45samples.reference.cnn"
+            cnvkit_inhouse_cnn_dir="/data/shared/genomes/hg38/inhouse_DBs/hg38v1_primary/cnvkit/wgs_persample_cnn/"
+            inhouse_SV="/data/shared/genomes/hg38/inhouse_DBs/hg38v1_primary/"
+        }
+        
+        if (params.hg38v2){
+            genome_fasta = "${refFilesDir}/hg38/ucsc.hg38.NGS.analysisSet.fa"
+            genome_fasta_fai = "${refFilesDir}/hg38/ucsc.hg38.NGS.analysisSet.fa.fai"
+            genome_fasta_dict = "${refFilesDir}/hg38/ucsc.hg38.NGS.analysisSet.dict"
+            genome_version="hg38v2"
+        }
+
+        // Current hg38 version (v3): NGC with masks and decoys.
+        if (!params.hg38v2 && !params.hg38v1){
+            genome_fasta = "${refFilesDir}/hg38/GRCh38_masked_v2_decoy_exclude.fa"
+            genome_fasta_fai = "${refFilesDir}/hg38/GRCh38_masked_v2_decoy_exclude.fa.fai"
+            genome_fasta_dict = "${refFilesDir}/hg38/GRCh38_masked_v2_decoy_exclude.dict"
+            genome_version="hg38v3"
+            cnvkit_germline_reference_PON="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/cnvkit/hg38v3_109samples.cnvkit.reference.cnn"
+            cnvkit_inhouse_cnn_dir="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/cnvkit/wgs_persample_cnn/"
+            inhouse_SV="/data/shared/genomes/hg38/inhouse_DBs/hg38v3/"
+        }
+
+
+
+
+        // Gene and transcript annotation files:
+
+        gencode_gtf = "${refFilesDir}/hg38/gene.annotations/gencode.v36.annotation.gtf"
+        gencode_gff3 = "${refFilesDir}/hg38/gene.annotations/gencode.v36.annotation.gff3"
+     
+        //Program  files:
+
+        msisensor_list="${refFilesDir}/hg38/program_DBs/msisensor/hg38_msisensor_scan.txt"
+        
+        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/hg38v3/hg38v3_scatter20_BWI/*.interval_list";        
+      
+        //Structural variants
+        delly_exclude="/data/shared/genomes/hg38/program_DBs/delly/human.hg38.excl.tsv"
+        
+        smoove_exclude="/data/shared/genomes/hg38/interval.files/smoove/smoove.hg38.excluderegions.bed"
+        smoove_gff="/data/shared/genomes/hg38/gene.annotations/GRCh38_latest_genomic.gff.gz"
+
+        svdb_databases="/data/shared/genomes/hg38/inhouse_DBs/hg38v3/svdb_AF"
+
+        //inhouse SV AF databases: 
+        mantaSVDB="${svdb_databases}/mantaSVDB315.db"
+        lumpySVDB="${svdb_databases}/lumpySVDB218.db"
+        cnvkitSVDB="${svdb_databases}/cnvkitSVDB313.db"
+        //tidditSVDB="${svdb_databases}/tidditSVDB.db"
+        dellySVDB="${svdb_databases}/dellySVDB112.db"
+
+
+        //Repeat Expansions:
+        expansionhunter_catalog="/data/shared/genomes/hg38/program_DBs/expansionHunter/expansionHunter_hg38_stripy.variant_catalog.json"
+        hipSTR_bed="/data/shared/genomes/hg38/interval.files/STRs/GRCh38.hipstr_reference.bed"
+
+        // Somatic calling files (GATK Mutect2 pipeline):
+        gatk_wgs_pon="/data/shared/genomes/hg38/program_DBs/GATK/somatic/somatic-hg38_1000g_pon.hg38.vcf.gz"
+        mutect_gnomad="/data/shared/genomes/hg38/program_DBs/GATK/somatic/somatic-hg38_af-only-gnomad.hg38.vcf.gz"
+        gatk_contamination_ref="/data/shared/genomes/hg38/program_DBs/GATK/somatic/somatic-hg38_small_exac_common_3.hg38.vcf.gz"
+
+        // Program indexes:
+        pcgr_assembly="grch38"
+        sequenza_cg50_wig="/data/shared/genomes/hg38/program_DBs/sequenza/GRCh38.primary.cg50.sequenza.wig.gz"
+
+
+        // Regions & variants:
+        qualimap_ROI="/data/shared/genomes/hg38/interval.files/210129.hg38.gencode36.codingexons.20bp.SM.6col.bed"
+        gencode_exons_ROI="/data/shared/genomes/hg38/interval.files/210129.hg38.gencode36.codingexons.SM.bed"
+
+        ROI="/data/shared/genomes/hg38/interval.files/exome.ROIs/211130.hg38.refseq.gencode.fullexons.50bp.SM.bed"
+        
+        //ROI="/data/shared/genomes/hg38/interval.files/210129.hg38.gencode36.codingexons.20bp.SM.bed"
+
+        callable_regions="/data/shared/genomes/hg38/interval.files/GATK.hg38.callable.regions.bed"
+        manta_callable_regions="/data/shared/genomes/hg38/interval.files/manta/GATK.hg38.callable.regions.bed.gz"
+
+        dbsnp="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_Homo_sapiens_assembly38.dbsnp138.vcf"
+        KGindels="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_Homo_sapiens_assembly38.known_indels.vcf.gz"
+        KGindels_idx="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_Homo_sapiens_assembly38.known_indels.vcf.gz.tbi"
+
+        KGmills="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
+        KGmills_idx="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_Mills_and_1000G_gold_standard.indels.hg38.vcf.gz.tbi"
+        KG_p1_High_snps="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_1000G_phase1.snps.high_confidence.hg38.vcf.gz"
+
+        hapmap="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_hapmap_3.3.hg38.vcf.gz"
+        omni="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_1000G_omni2.5.hg38.vcf.gz"
+        AV1_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/av1.hg38.ROI.v2.bed"
+        CV1_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/cv3.hg38.ROI.bed"
+        CV2_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/cv3.hg38.ROI.bed"
+        CV3_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/cv3.hg38.ROI.bed"
+        CV4_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/cv4.hg38.ROI.bed"
+        CV5_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/cv5.hg38.ROI.bed"
+        GV3_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/gv3.hg38.ROI.v2.bed"
+        NV1_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/nv1.hg38.ROI.bed"
+        WES_ROI="/data/shared/genomes/hg38/interval.files/exome.ROIs/211130.hg38.refseq.gencode.fullexons.50bp.SM.bed"
+        MV1_ROI="/data/shared/genomes/${params.genome}/interval.files/panels/muc1.hg38.coordinates.bed"
+        break;
+
+    case 't2t':
+        assembly                = "t2t"
+        genome_mmi              = "/data/shared/genomes/t2t/pacbio_t2t/chm13v2p0_maskedY_rCRS.mmi"
+        genome_fasta            = "/data/shared/genomes/t2t/pacbio_t2t/chm13v2p0_maskedY_rCRS.fasta"
+        genome_fasta_fai        = "/data/shared/genomes/t2t/pacbio_t2t/chm13v2p0_maskedY_rCRS.fasta.fai"
+        genome_fasta_dict       = "/data/shared/genomes/t2t/pacbio_t2t/chm13v2p0_maskedY_rCRS.dict"
+        genome_version          = "T2Tv1"
+
+        pbSV_trf                = "/data/shared/genomes/t2t/pacbio_t2t/chm13v2p0_maskedY_rCRS.trf.bed"
+        ROI                     = "/data/shared/genomes/t2t/interval.files/250314.T2T.RefSeq.fullExons+50bp.bed"
+        WES_ROI                 = "/data/shared/genomes/t2t/interval.files/250314.T2T.RefSeq.fullExons+50bp.bed"
+
+    break;
+
 }
+
+
+
+channel
+    .fromPath(params.intervals_list)
+    .map { it -> tuple(it.baseName,it)}
+    .set { haplotypecallerIntervalList }
+
+/*
 */
+
+
+
+
+////////////////////////////////////////////////////
+////// INPUT DATA: FASTQ AS INPUT //////////////////
+////////////////////////////////////////////////////
+
 if (!params.fastq && params.fastqInput) {
 
-    params.reads="${dataArchive}/{lnx01,lnx02,kga01_novaRuns,tank_kga_external_archive}/**/${reads_pattern_fastq}"
+    inputFastq="${dataArchive}/{lnx02,lnx04}/**/${reads_pattern_fastq}"
+}
+if (params.fastq) {
+     inputFastq="${params.fastq}/${reads_pattern_fastq}"
+ //   channel.fromFilePairs(params.reads).view()
+}
+//${reads_pattern_fastq}
+if (params.fastq || params.fastqInput) {
+    //(Channel.fromFilePairs("${inputFastq}", checkIfExists: true)
+    Channel.fromFilePairs(inputFastq, checkIfExists: true)
+    | map { id, reads -> 
+        (sample, ngstype, materialAndRead)   = reads[0].baseName.tokenize("-")
+        (panel,subpanel)    = ngstype.tokenize("_")
+        (material,sID,read,lane) =materialAndRead.tokenize("_")
+        meta = [id:sample+"_"+ngstype+"_"+material, npn:sample, fullpanel:ngstype,panel:panel, subpanel:subpanel]
+        [meta, reads]
+    }
+    | branch {meta, reads ->
+        WGS: (meta.panel=~/WG/ || meta.panel=~/NGC/)
+            return [meta + [outdir:meta.fullpanel,datatype:"WGS",roi:"$WES_ROI"],reads]
+        AV1: (meta.panel=~/AV1/)
+            return [meta + [outdir:meta.panel,datatype:"targeted",roi:"$AV1_ROI"],reads]
+        MV1: (meta.panel=~/MV1/)
+            return [meta + [outdir:meta.panel,datatype:"targeted",roi:"$MV1_ROI"],reads]
+        WES: (meta.panel=~/EV8/ ||meta.panel=~/EV7/)
+            return [meta + [outdir:meta.panel,datatype:"targeted",roi:"$WES_ROI"],reads]
+        undetermined: true
+            return [meta + [outdir:meta.panel,datatype:"unset",analyzed:"NO"],reads]
+        [meta, reads]
+    }
+    | set {readsInputBranched}
+
+    readsInputBranched.MV1.concat(readsInputBranched.AV1).concat(readsInputBranched.WES).concat(readsInputBranched.WGS)
+    | set {readsInputReMerged}
+
+    if (params.samplesheet) {
+        readsInputReMerged
+        | map { meta,reads -> tuple(meta.npn,meta,reads)}
+        | set {readsInputForJoin}
+  //      readsInputForJoin.view()
+        // NBNBNBNBNB: Requires named headers for now!!! (e.g. column with NPN must be named "npn" in samplesheet)
+    channel.fromPath(params.samplesheet)
+        | splitCsv(sep:'\t',header:true)
+        | map { row -> tuple(row.npn, row)}
+       // | view
+        | set { full_samplesheet }
+    full_samplesheet.join(readsInputForJoin)    
+        | map {tuple(it[1],it[2],it[3])}
+        | map {meta1,meta2,data -> 
+          [meta1+meta2,data]}
+        | set {readsInputFinal}
+    }
+    
+    if (!params.samplesheet) {
+        readsInputReMerged
+        | set {readsInputFinal} 
+    }
+   // readsInputFinal.view()
+}
+////////////////////////////////////////////////////
+////// INPUT DATA: CRAM AS INPUT //////////////////
+////////////////////////////////////////////////////
+
+if (!params.fastq && !params.fastqInput && !params.spring){
+
+    if (params.cram) {
+        cramfiles="${params.cram}/${reads_pattern_cram}"
+        craifiles="${params.cram}/${reads_pattern_crai}"
+    }
+
+    if (!params.cram) {
+        cramfiles="${dataArchive}/{lnx02,lnx04}/**/${reads_pattern_cram}"
+        craifiles="${dataArchive}/{lnx02,lnx04}/**/${reads_pattern_crai}"
+    }
+    
+    if (params.cram && params.subdirs) {
+        cramfiles="${params.cram}/**/${reads_pattern_cram}"
+        craifiles="${params.cram}/**/${reads_pattern_crai}"
+    }
+
+    Channel.fromPath(cramfiles,checkIfExists:true)
+    |map {tuple (it.simpleName,it)}
+    |set {cramfiles}
+    
+    Channel.fromPath(craifiles,checkIfExists:true)
+    |map {tuple (it.simpleName,it)}
+    |set {craifiles}
+    
+    cramfiles.join(craifiles)
+    |map { id, aln, index ->
+        (sample, panel,subpanel)   = id.tokenize("_")
+      //  (panel,subpanel)    = ngstype.tokenize("_")
+        meta = [id:id, npn:sample, fullpanel:panel+"_"+subpanel, panel:panel, subpanel:subpanel]
+        tuple(meta,[aln,index])
+    }
+
+    | set {cram_all}
+    cram_all
+    |branch {meta, aln ->
+            WGS: (meta.panel=~/WG/ || meta.panel=~/NGC/)
+                return [meta + [outdir:meta.fullpanel, datatype:"WGS",roi:"$WES_ROI"],aln]
+            AV1: (meta.panel=~/AV1/)
+                return [meta + [outdir:meta.panel, datatype:"targeted",roi:"$AV1_ROI"],aln]
+            MV1: (meta.panel=~/MV1/)
+                return [meta + [outdir:meta.panel, datatype:"targeted",roi:"$MV1_ROI"],aln]
+            CV5: (meta.panel=~/CV5/)
+                return [meta + [outdir:meta.panel, datatype:"targeted",roi:"$CV5_ROI"],aln]
+            WES: (meta.panel=~/EV8/ ||meta.panel=~/EV7/)
+                return [meta + [outdir:meta.panel, datatype:"targeted",roi:"$WES_ROI"],aln]
+            undetermined: true
+                return [meta + [datatype:"unset",analyzed:"NO"],aln]
+            [meta, aln]
+    }
+    | set {cramInputBranched}
+
+    cramInputBranched.MV1.concat(cramInputBranched.AV1).concat(cramInputBranched.WES).concat(cramInputBranched.WGS).concat(cramInputBranched.CV5)
+    |set {cramInputReMerged}
+
+    if (params.samplesheet) {
+        cramInputReMerged
+        | map { meta,aln -> tuple(meta.npn,meta,aln)}
+        | set {alnInputForJoin}
+        // NBNBNBNBNB: Requires named headers for now!!! (e.g. column with NPN must be named "npn" in samplesheet)
+         channel.fromPath(params.samplesheet)
+        | splitCsv(sep:'\t',header:true)
+        | map { row -> tuple(row.npn, row)}
+        | set { full_samplesheet }
+
+    full_samplesheet.join(alnInputForJoin)    
+        | map {tuple(it[1],it[2],it[3])}
+        | map {meta1,meta2,data -> 
+          [meta1+meta2,data]}
+        | set {alnInputFinal}
+    }
+    
+    if (!params.samplesheet) {
+        cramInputReMerged
+        | set {alnInputFinal} 
+    }
+    //alnInputFinal.view()
 }
 
-
-// if fastq input, set reads input channels
-
-// Standard use: point to fastq folder for paneldata
-
-if (!params.samplesheet && params.fastq) {
-// If NOT samplesheet (std panel run), set sampleID == NPN_PANEL_SUBPANEL
-
-    params.reads="${params.fastq}/${reads_pattern_fastq}"
-    //params.reads="${params.fastq}/*{.,_,-}{R1,R2}*.gz"
-/*
- Channel
-    .fromFilePairs(params.reads, checkIfExists: true)
-    .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
-//    .map { it -> [it[0]+"_"+params.panel+"_"+params.genome, file(it[1][0]),file(it[1][1])] }
-    .map { it -> [it[0], file(it[1][0]),file(it[1][1])] }
-    .set { read_pairs_ch }
-
-*/
-
-    Channel
-    .fromPath(params.reads, checkIfExists: true)
-    .filter {it =~/R1/}
-    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
-    .set { sampleid_R1}
-
-    Channel
-    .fromPath(params.reads, checkIfExists: true)
-    .filter {it =~/R2/}
-    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
-    .set { sampleid_R2 }
-
-    sampleid_R1.join(sampleid_R2)
-    .set { read_pairs_ch }
-
-
-
-}
-
-if (params.samplesheet && params.fastq || params.fastqInput) {
-    // If samplesheet, reduce sampleID to NPN only (no panel/subpanel info!)
-    Channel
-    .fromPath(params.reads, checkIfExists: true)
-    .filter {it =~/_R1_/}
-    //.map { tuple(it.baseName.tokenize('-').get(0),it) }
-    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
-    .set { sampleid_R1}
-
-    Channel
-    .fromPath(params.reads, checkIfExists: true)
-    .filter {it =~/_R2_/}
-    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
-    //.map { tuple(it.baseName.tokenize('-').get(0),it) }
-    .set { sampleid_R2 }
-
-    sampleid_R1.join(sampleid_R2)
-    .set { read_pairs_ch }
-
-}
-
-
-// Standard use: Point to fastq for WGS ana
-
-if (params.cram) { //&& params.panel
-    cramfiles="${params.cram}/${reads_pattern_cram}"
-    craifiles="${params.cram}/${reads_pattern_crai}"
-
-    Channel
-    .fromPath(cramfiles)
-    .map { tuple(it.baseName.tokenize('.').get(0),it) }
-    .set { sampleID_cram }
-
-    Channel
-    .fromPath(craifiles)
-    .map { tuple(it.baseName.tokenize('.').get(0),it) }
-    .set {sampleID_crai }
-}
-
-
-// If only samplesheet is provided, use CRAM from archive as input (default setup)!
-
-if (params.samplesheet && !params.cram && !params.fastqInput && !params.fastq) {
-    cramfiles="${dataArchive}/{lnx01,lnx02,tank_kga_external_archive}/**/${reads_pattern_cram}"
-    craifiles="${dataArchive}/{lnx01,lnx02,tank_kga_external_archive}/**/${reads_pattern_crai}"
-
-    Channel
-    .fromPath(cramfiles)
-    .map { tuple(it.baseName.tokenize('_').get(0),it) }
-    .set { sampleID_cram }
-
-    Channel
-    .fromPath(craifiles)
-    .map { tuple(it.baseName.tokenize('_').get(0),it) }
-    .set {sampleID_crai }
-}
 
 ////////////////////////////////////////////////////////////////////
 //// NEW June 2024: Add spring as input. ///////////////////////////
@@ -426,11 +635,11 @@ if (params.samplesheet && !params.cram && !params.fastqInput && !params.fastq) {
 
 if (params.spring && !params.samplesheet) {
 
-    params.spring_reads="${params.spring}/${reads_pattern_spring}"
+    spring_reads="${params.spring}/${reads_pattern_spring}"
 
 
     Channel
-    .fromPath(params.spring_reads, checkIfExists: true)
+    .fromPath(spring_reads, checkIfExists: true)
     .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
     .set {spring_input_ch}
 }
@@ -438,61 +647,6 @@ if (params.spring && !params.samplesheet) {
 
 
 
-////////////////////////////////////////////////////
-///////////// SAMPLESHEET channels /////////////////
-////////////////////////////////////////////////////
-if (params.samplesheet) {
-    channel.fromPath(params.samplesheet)
-        .splitCsv(sep:'\t')
-        .map { row -> tuple(row[1], row[0],row[2],row[3])}
-        .set { full_samplesheet }
-    //above: NPN, caseID, relation, samplestatus
-
-    channel.fromPath(params.samplesheet)
-        .splitCsv(sep:'\t')
-        .map { row -> row[0]}
-        .unique()
-        .collect()
-        .set { caseID_ch }
-
-    channel.fromPath(params.samplesheet)
-        .splitCsv(sep:'\t')
-        .map { row -> tuple(row[0],row[1])}
-        .set {caseID_sampleID}
-}
-
-
-////////////////////////////////////////////////////
-///////////// set final input channels   ///////////
-////////////////////////////////////////////////////
-
-
-if (!params.samplesheet && params.fastq) {
-    read_pairs_ch
-    .set { fq_read_input }
-}
-
-if (!params.samplesheet && params.cram) {
-    sampleID_cram.join(sampleID_crai)
-    .set { meta_aln_index }
-}
-
-if (params.samplesheet && !params.cram && (params.fastqInput||params.fastq)) {
-    full_samplesheet.join(read_pairs_ch)
-    .map {tuple (it[0]+"_"+it[1]+"_"+it[2],it[4],it[5])}
-    .set { fq_read_input }
-}
-
-if (params.samplesheet && !params.fastqInput && !params.fastq) {
-
-    full_samplesheet.join(sampleID_cram).join(sampleID_crai)
-    .map {tuple (it[0]+"_"+it[1]+"_"+it[2],it[4],it[5])}
-    .set {meta_aln_index}
-}
-
-
-
-//////// END: Combine input and samplesheet //////////
 
 ///// Haplotypecaller splitintervals channel: /////
 /*
@@ -506,271 +660,234 @@ channel
 include { 
          // Symlinks:
          inputFiles_symlinks_cram;
-         inputFiles_cramCopy;
+         //inputFiles_cramCopy;
          // Preprocess tools:
          //QC tools
          samtools;
+         bamtools;
          qualimap;
-         fastqc_bam;
+         //fastqc_bam;
          collectWGSmetrics;
          multiQC;
          vntyper_newRef;
+         haplotypecallerSplitIntervals;
          //subworkflows:
          SUB_SPRING_DECOMPRESS;
          SUB_PREPROCESS;
+         SUB_QC;
          SUB_VARIANTCALL;
          SUB_VARIANTCALL_WGS;
          SUB_CNV_SV;
          SUB_STR;
          SUB_SMN } from "./modules/modules.dna.v1.nf" 
 
-
+/*
 workflow QC {
     take: 
     meta_aln_index
     main:
     samtools(meta_aln_index)
-//    qualimap(meta_aln_index)
-//    fastqc_bam(meta_aln_index)
+
     multiQC(samtools.out.ifEmpty([]).mix(qualimap.out.ifEmpty([])).mix(fastqc_bam.out.ifEmpty([])).collect())
 
 }
 
 
+process fastq_to_ubam {
+    errorStrategy 'ignore'
+    tag "$meta.id"
+    //publishDir "${outputDir}/unmappedBAM/", mode: 'copy',pattern: '*.{bam,bai}'
+    //publishDir "${outputDir}/fastq_symlinks/", mode: 'link', pattern:'*.{fastq,fq}.gz'
+    cpus 20
+    maxForks 10
 
-workflow {
+    input:
+    tuple val(meta), path(reads)
 
-    if (params.spring) {
-        SUB_SPRING_DECOMPRESS(spring_input_ch)
-        //SUB_SPRING_DECOMPRESS.out.view()
-        fq_read_input=SUB_SPRING_DECOMPRESS.out.fq_read_input_spring
-    }
-
-    if (params.fastqInput||params.fastq||params.spring || params.preprocessOnly) {
-        SUB_PREPROCESS(fq_read_input)
-        meta_aln_index=SUB_PREPROCESS.out.finalAln
-        
-    }
-
-    if (!params.preprocessOnly) {
-        if (!params.fastqInput && !params.fastq && !params.spring) {
-            inputFiles_symlinks_cram(meta_aln_index)
-        }
-
-        if (!params.panel || params.panel =="WGS_CNV"|| params.panel =="NGC") { //i.e. if WGS data
-
-            if (!params.skipVariants) {
-                SUB_VARIANTCALL_WGS(meta_aln_index)
-            }
-            if (!params.skipSV) {
-                SUB_CNV_SV(meta_aln_index)
-            }
-            if (!params.skipSTR) {
-                SUB_STR(meta_aln_index)
-            }
-            
-            if (!params.skipSMN) {
-            SUB_SMN(meta_aln_index)
-            }
-
-        }
-
-        if (params.panel && params.panel!="WGS_CNV"&& params.panel!="NGC") {
-
-            SUB_VARIANTCALL(meta_aln_index)
-
-            if (params.panel=="MV1") {
-                vntyper_newRef(fq_read_input)
-            }
-        }
-    }
+    output:
+    tuple val(meta), path("${meta.id}.unmapped.from.fq.bam"), path("${meta.id}.unmapped.from.fq.bam.idx"),emit: testOut
+    
+    script:
+    """
+    ${gatk_exec} FastqToSam \
+    -F1 ${reads[0]} \
+    -F2 ${reads[1]} \
+    -SM ${meta.id} \
+    -PL illumina \
+    -PU KGA_PU \
+    -RG KGA_RG \
+    --TMP_DIR ${tmpDIR} \
+    -O ${meta.id}.unmapped.from.fq.bam
+    touch ${meta.id}.unmapped.from.fq.bam.idx
+    """
 }
-
-
-/*
-
-workflow (works with spring) {
-
-    if (params.spring) {
-        SUB_SPRING_DECOMPRESS(spring_input_ch)
-        //SUB_SPRING_DECOMPRESS.out.view()
-        fq_read_input=SUB_SPRING_DECOMPRESS.out.fq_read_input_spring
-    }
-
-    if (!params.panel || params.panel =="WGS_CNV") { 
-
-        if (params.fastqInput||params.fastq) {
-
-
-            SUB_PREPROCESS(fq_read_input)
-          
-            if (!params.preprocessOnly) {
-                if (!params.skipVariants) {
-                    SUB_VARIANTCALL_WGS(SUB_PREPROCESS.out.finalAln)
-                }
-                if (!params.skipSV) {
-                    SUB_CNV_SV(SUB_PREPROCESS.out.finalAln)
-                }
-                if (!params.skipSTR) {
-                    SUB_STR(SUB_PREPROCESS.out.finalAln)
-                }
-                
-                if (!params.skipSMN) {
-                SUB_SMN(SUB_PREPROCESS.out.finalAln)
-                }
-            }
-        }
-
-        if (!params.fastqInput && !params.fastq && !params.spring) {
-
-            if (!params.copyCram) {
-                inputFiles_symlinks_cram(meta_aln_index)
-
-                if (!params.skipVariants) {
-                    SUB_VARIANTCALL_WGS(meta_aln_index)
-                }
-                if (!params.skipSV) {
-                    SUB_CNV_SV(meta_aln_index)
-                }
-                if (!params.skipSTR) {
-                    SUB_STR(meta_aln_index)
-                }
-                if (!params.skipSMN) {
-                SUB_SMN(meta_aln_index)
-                }
-            }
-
-            if (params.copyCram) {
-                inputFiles_symlinks_cram(meta_aln_index)
-                inputFiles_cramCopy(meta_aln_index)
-            
-                if (!params.skipVariants) {
-                    SUB_VARIANTCALL_WGS(inputFiles_cramCopy.out)
-                }
-                if (!params.skipSV) {
-                    SUB_CNV_SV(inputFiles_cramCopy.out)
-                }
-                if (!params.skipSTR) {
-                    SUB_STR(inputFiles_cramCopy.out)
-                }
-                if (!params.skipSMN) {
-                    SUB_SMN(inputFiles_cramCopy.out)
-                }
-            }
-        }
-    }
-
-    if (params.panel && params.panel!="WGS_CNV") {
-
-        if (params.fastqInput||params.fastq || params.spring) {
-            SUB_PREPROCESS(fq_read_input)
-            SUB_VARIANTCALL(SUB_PREPROCESS.out.finalAln)
-
-            if (params.panel=="MV1") {
-                vntyper_newRef(fq_read_input)
-            }
-        }
-
-        if (!params.fastqInput && !params.fastq && !params.spring) {
-            inputFiles_symlinks_cram(meta_aln_index)
-            SUB_VARIANTCALL(meta_aln_index)
-        }
-    }
-}
-
 
 */
 
 
-/*
 workflow {
 
     if (params.spring) {
-        workflow SUB_SPRING_DECOMPRESS(spring_input_ch)
+        SUB_SPRING_DECOMPRESS(spring_input_ch)
+        //SUB_SPRING_DECOMPRESS.out.view()
+        readsInputFinal=SUB_SPRING_DECOMPRESS.out.fq_read_input_spring
     }
 
-    if (!params.panel || params.panel =="WGS_CNV") { 
+    if (params.fastqInput||params.fastq||params.spring || params.preprocessOnly) {
+        SUB_PREPROCESS(readsInputFinal)
 
-        if (params.fastqInput||params.fastq) {
+        
 
+        SUB_PREPROCESS.out.finalAln
+        |map {meta, cram,crai ->
+            tuple(meta,[cram,crai])}
+        |set {alnInputFinal}
+    }
+    alnInputFinal
+        |branch {meta, aln ->
+            WGS: (meta.datatype=~/WGS/)
+                return [meta ,aln]
+            TARGETED: (meta.datatype=~/targeted/)
+                return [meta ,aln]
+        }
+        | set {alnInputFinalBranched}
 
-            SUB_PREPROCESS(fq_read_input)
-          
-            if (!params.preprocessOnly) {
-                if (!params.skipVariants) {
-                    SUB_VARIANTCALL_WGS(SUB_PREPROCESS.out.finalAln)
-                }
-                if (!params.skipSV) {
-                    SUB_CNV_SV(SUB_PREPROCESS.out.finalAln)
-                }
-                if (!params.skipSTR) {
-                    SUB_STR(SUB_PREPROCESS.out.finalAln)
-                }
-                
-                if (!params.skipSMN) {
-                SUB_SMN(SUB_PREPROCESS.out.finalAln)
-                }
-            }
+    if (!params.preprocessOnly) {
+        inputFiles_symlinks_cram(alnInputFinal) 
+        if(!params.skipQC){
+            SUB_QC(alnInputFinalBranched.WGS)
         }
 
-        if (!params.fastqInput && !params.fastq && !params.spring) {
+        if (!params.skipVariants) {
+            SUB_VARIANTCALL(alnInputFinalBranched.TARGETED)
+            SUB_VARIANTCALL_WGS(alnInputFinalBranched.WGS)
+        }
 
-            if (!params.copyCram) {
-                inputFiles_symlinks_cram(meta_aln_index)
+        if (!params.skipSV && panelID=="WGS") {
+            SUB_CNV_SV(alnInputFinalBranched.WGS)
+        }
+        
+        if (!params.skipSTR && panelID=="WGS") {
+            SUB_STR(alnInputFinalBranched.WGS)
+        }
 
-                if (!params.skipVariants) {
-                    SUB_VARIANTCALL_WGS(meta_aln_index)
-                }
-                if (!params.skipSV) {
-                    SUB_CNV_SV(meta_aln_index)
-                }
-                if (!params.skipSTR) {
-                    SUB_STR(meta_aln_index)
-                }
-                if (!params.skipSMN) {
-                SUB_SMN(meta_aln_index)
-                }
-            }
-
-            if (params.copyCram) {
-                inputFiles_symlinks_cram(meta_aln_index)
-                inputFiles_cramCopy(meta_aln_index)
+        if (!params.skipSMN && panelID=="WGS") {
             
-                if (!params.skipVariants) {
-                    SUB_VARIANTCALL_WGS(inputFiles_cramCopy.out)
-                }
-                if (!params.skipSV) {
-                    SUB_CNV_SV(inputFiles_cramCopy.out)
-                }
-                if (!params.skipSTR) {
-                    SUB_STR(inputFiles_cramCopy.out)
-                }
-                if (!params.skipSMN) {
-                    SUB_SMN(inputFiles_cramCopy.out)
-                }
-            }
+            alnInputFinalBranched.WGS
+            //|map {meta, aln -> tuple(meta.id,aln[0])}
+            |map {meta, aln -> tuple(meta.panel,aln[0])}
+            |map {it -> it[0]+'\t'+it[1]}
+            //|collectFile(name: "smncaller_manifest.txt", newLine: true)
+            |collectFile(name: "smncaller_manifest.txt", newLine: true, storeDir: "${launchDir}/")
+            | set{smn_input_ch}
+            
+            smn_input_ch
+            //SUB_SMN(alnInputFinalBranched.WGS)
+            SUB_SMN(smn_input_ch)
         }
     }
 
-    if (params.panel && params.panel!="WGS_CNV") {
-
-        if (params.fastqInput||params.fastq) {
-            SUB_PREPROCESS(fq_read_input)
-            SUB_VARIANTCALL(SUB_PREPROCESS.out.finalAln)
-
-            if (params.panel=="MV1") {
-                vntyper_newRef(fq_read_input)
-            }
-        }
-
-        if (!params.fastqInput && !params.fastq) {
-            inputFiles_symlinks_cram(meta_aln_index)
-            SUB_VARIANTCALL(meta_aln_index)
-        }
-    }
 }
+    /*
 
 
+    haplotypecallerSplitIntervals(alnInputFinalBranched.WGS.combine(haplotypecallerIntervalList))
+    haplotypecallerSplitIntervals.out
+    //|view
+    |set {splitintervalout_test}
+    splitintervalout_test
+    .groupTuple(size:17)
+    | view    
+
+
+
+        |branch {meta, aln ->
+            WGS: (meta.panel=~/WG/ || meta.panel=~/NGC/)
+                return [meta + [datatype:"WGS",roi:"$WES_ROI"],aln]
+            AV1: (meta.panel=~/AV1/)
+                return [meta + [datatype:"targeted",roi:"$AV1_ROI"],aln]
+            MV1: (meta.panel=~/MV1/)
+                return [meta + [datatype:"targeted",roi:"$MV1_ROI"],aln]
+            WES: (meta.panel=~/EV8/ ||meta.panel=~/EV7/)
+                return [meta + [datatype:"targeted",roi:"$WES_ROI"],aln]
+            undetermined: true
+                return [meta + [datatype:"unset",analyzed:"NO"],aln]
+            [meta, aln]
+        }
+              | set {cramInputBranched}
+    
+        cramInputBranched.MV1.concat(cramInputBranched.AV1).concat(cramInputBranched.WES).concat(cramInputBranched.WGS)
+        |set {cramInputReMerged}
+    
+        cramInputReMerged.view()
+      */
+            
+       // }
+       // |set {alnInputFinal}
+
+       // alnInputFinal.view()
+        //SUB_VARIANTCALL(alnInputFinal)
+/*
+    Working, 240925:
+        preprocessOutAln
+        |map {meta, cram,crai ->
+            tuple(meta,[cram,crai])}
+        |set {alnInputFinal}
+
+        alnInputFinal.view()
+    End
+
+    if (!params.fastqInput && !params.fastq && !params.spring) {
+        inputFiles_symlinks_cram(alnInputFinal) // new channel structure: val(meta), path(data)
+
+    }
+
+
+    if (!params.panel || params.panel =="WGS_CNV"|| params.panel =="NGC") { //i.e. if WGS data
+
+        if (!params.skipVariants) {
+            SUB_VARIANTCALL_WGS(alnInputFinal)
+        }
+        if (!params.skipSV) {
+            SUB_CNV_SV(alnInputFinal)
+        }
+        if (!params.skipSTR) {
+            SUB_STR(alnInputFinal)
+        }
+        
+        if (!params.skipSMN) {
+        SUB_SMN(alnInputFinal)
+        }
+
+    }
+
+    if (params.panel && params.panel!="WGS_CNV"&& params.panel!="NGC") {
+
+        SUB_VARIANTCALL(alnInputFinal)
+
+        if (params.panel=="MV1") {
+            vntyper_newRef(readsInputFinal)
+        }
+    }
+  */  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 
 
 workflow.onComplete {

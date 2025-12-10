@@ -616,7 +616,6 @@ if (!params.fastq && !params.fastqInput && !params.spring){
         | map { row ->
                  (caseID,npn)=tuple(row)
          meta=[caseID:caseID, npn:npn]
-         |view
          meta
         }
         | set { full_samplesheet }

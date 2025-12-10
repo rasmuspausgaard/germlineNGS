@@ -613,7 +613,7 @@ if (!params.fastq && !params.fastqInput && !params.spring){
         //| map { row -> tuple(row.npn, row)}
         | splitCsv(sep:'\t')
         | map { row -> (caseID,npn)=tuple(row)}
-         meta=[caseID:caseID,npn:npn]
+         meta=[npn:npn]
         | view
         | set { full_samplesheet }
 

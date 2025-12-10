@@ -617,7 +617,6 @@ if (!params.fastq && !params.fastqInput && !params.spring){
          meta=[caseID:caseID, npn:npn]
          meta
         }
-        | view
         | set { full_samplesheet }
 
         full_samplesheet

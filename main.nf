@@ -613,9 +613,8 @@ if (!params.fastq && !params.fastqInput && !params.spring){
         //| map { row -> tuple(row.npn, row)}
         | splitCsv(sep:'\t')
         | map { row -> (caseID,npn)=tuple(row)}
-        |view
-        // meta=[caseID:caseID,npn:npn]
-        //| view
+         meta=[caseID:caseID,npn:npn]
+        | view
         | set { full_samplesheet }
 
         full_samplesheet.join(alnInputForJoin)    

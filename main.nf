@@ -606,7 +606,6 @@ if (!params.fastq && !params.fastqInput && !params.spring){
     if (params.samplesheet) {
         cramInputReMerged
         | map { meta,aln -> tuple(meta.npn,meta,aln)}
-        |view
         | set {alnInputForJoin}
 
         // NBNBNBNBNB: Requires named headers for now!!! (e.g. column with NPN must be named "npn" in samplesheet)
@@ -622,7 +621,7 @@ if (!params.fastq && !params.fastqInput && !params.spring){
         | set { full_samplesheet }
 
         full_samplesheet
-        |map {row -> meta2=[row.id,row]}
+        |map {row -> tuple(row.id,[row])}
         |view
         |set {samplesheet_join}
 

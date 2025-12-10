@@ -613,7 +613,6 @@ if (!params.fastq && !params.fastqInput && !params.spring){
         Channel.fromPath(params.samplesheet) //caseID, NPN
         .splitCsv(sep:'\t')
         .map { row -> tuple(row[1], row[0])}    //NPN, CaseID
-        |view
         .set { full_samplesheet }
 
         full_samplesheet.join(alnInputForJoin)    

@@ -609,23 +609,14 @@ if (!params.fastq && !params.fastqInput && !params.spring){
         | set {alnInputForJoin}
 
         // NBNBNBNBNB: Requires named headers for now!!! (e.g. column with NPN must be named "npn" in samplesheet)
-         channel.fromPath(params.samplesheet)
-       // | splitCsv(sep:'\t',header:false)
-        //| map { row -> tuple(row.npn, row)}
-        | splitCsv(sep:'\t')
-        | map { row ->
-                 (caseID,npn)=tuple(row)
-         meta=[caseID:caseID, npn:npn]
-         meta
-        }
-        | set { full_samplesheet }
 
-        full_samplesheet
-        |map {row -> tuple(row.id,[row])}
+        Channel.fromPath(params.samplesheet) //caseID, NPN
+        .splitCsv(sep:'\t')
+        .map { row -> tuple(row[1], row[0])}    //NPN, CaseID
         |view
-        |set {samplesheet_join}
+        .set { full_samplesheet }
 
-        samplesheet_join.join(alnInputForJoin)    
+        full_samplesheet.join(alnInputForJoin)    
         |view
         | map {tuple(it[1],it[2],it[3])}
         | map {meta1,meta2,data -> 

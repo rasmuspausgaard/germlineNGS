@@ -567,7 +567,6 @@ if (!params.fastq && !params.fastqInput && !params.spring){
 
     Channel.fromPath(cramfiles,checkIfExists:true)
     |map {tuple (it.simpleName,it)}
-    | view
     |set {cramfiles}
     
     Channel.fromPath(craifiles,checkIfExists:true)
@@ -610,12 +609,16 @@ if (!params.fastq && !params.fastqInput && !params.spring){
         | set {alnInputForJoin}
         // NBNBNBNBNB: Requires named headers for now!!! (e.g. column with NPN must be named "npn" in samplesheet)
          channel.fromPath(params.samplesheet)
-        | splitCsv(sep:'\t',header:true)
-        | map { row -> tuple(row.npn, row)}
+       // | splitCsv(sep:'\t',header:false)
+        //| map { row -> tuple(row.npn, row)}
+        | splitCsv(sep:'\t')
+        | map { row -> (caseID,npn)=tuple(row)}
+         meta=[caseID:caseID,npn:npn]
         | view
         | set { full_samplesheet }
 
-    full_samplesheet.join(alnInputForJoin)    
+        full_samplesheet.join(alnInputForJoin)    
+        |view
         | map {tuple(it[1],it[2],it[3])}
         | map {meta1,meta2,data -> 
           [meta1+meta2,data]}

@@ -620,7 +620,11 @@ if (!params.fastq && !params.fastqInput && !params.spring){
         | view
         | set { full_samplesheet }
 
-        full_samplesheet.join(alnInputForJoin)    
+        full_samplesheet
+        |map {row -> meta2=[row.id,row]}
+        |set {samplesheet_join}
+
+        samplesheet_join.join(alnInputForJoin)    
         |view
         | map {tuple(it[1],it[2],it[3])}
         | map {meta1,meta2,data -> 

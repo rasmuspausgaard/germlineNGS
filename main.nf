@@ -611,6 +611,7 @@ if (!params.fastq && !params.fastqInput && !params.spring){
          channel.fromPath(params.samplesheet)
         | splitCsv(sep:'\t',header:true)
         | map { row -> tuple(row.npn, row)}
+        | view
         | set { full_samplesheet }
 
     full_samplesheet.join(alnInputForJoin)    

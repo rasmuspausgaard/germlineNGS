@@ -627,7 +627,7 @@ if (!params.fastq && !params.fastqInput && !params.spring){
         cramInputReMerged
         | set {alnInputFinal} 
     }
-    //alnInputFinal.view()
+    alnInputFinal.view()
 }
 
 

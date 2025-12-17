@@ -166,7 +166,7 @@ process inputFiles_symlinks_spring{
 process spring_decompress {
     tag "$meta.id"
     label 'medium'
-    conda "${params.spring}"
+    conda "${params.springConda}"
 
     publishDir "${outputDir}/fastqFromSpring/", mode: 'copy', pattern:"*.fastq.gz"
 

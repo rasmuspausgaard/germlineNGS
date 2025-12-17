@@ -392,18 +392,6 @@ if (params.spring && !params.samplesheet) {
     .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
     .set {spring_input_ch}
 }
-
-
-
-
-
-///// Haplotypecaller splitintervals channel: /////
-/*
-channel
-    .fromPath(params.intervals_list)
-    .map { it -> tuple(it.baseName,it)}
-    .set { haplotypecallerIntervalList }
-*/
 ////////////////////////////////////////////////////
 
 include { 
@@ -430,48 +418,7 @@ include {
          SUB_STR;
          SUB_SMN } from "./modules/modules.dna.v1.nf" 
 
-/*
-workflow QC {
-    take: 
-    meta_aln_index
-    main:
-    samtools(meta_aln_index)
 
-    multiQC(samtools.out.ifEmpty([]).mix(qualimap.out.ifEmpty([])).mix(fastqc_bam.out.ifEmpty([])).collect())
-
-}
-
-
-process fastq_to_ubam {
-    errorStrategy 'ignore'
-    tag "$meta.id"
-    //publishDir "${outputDir}/unmappedBAM/", mode: 'copy',pattern: '*.{bam,bai}'
-    //publishDir "${outputDir}/fastq_symlinks/", mode: 'link', pattern:'*.{fastq,fq}.gz'
-    cpus 20
-    maxForks 10
-
-    input:
-    tuple val(meta), path(reads)
-
-    output:
-    tuple val(meta), path("${meta.id}.unmapped.from.fq.bam"), path("${meta.id}.unmapped.from.fq.bam.idx"),emit: testOut
-    
-    script:
-    """
-    ${gatk_exec} FastqToSam \
-    -F1 ${reads[0]} \
-    -F2 ${reads[1]} \
-    -SM ${meta.id} \
-    -PL illumina \
-    -PU KGA_PU \
-    -RG KGA_RG \
-    --TMP_DIR ${tmpDIR} \
-    -O ${meta.id}.unmapped.from.fq.bam
-    touch ${meta.id}.unmapped.from.fq.bam.idx
-    """
-}
-
-*/
 
 
 workflow {
@@ -537,104 +484,6 @@ workflow {
     }
 
 }
-    /*
-
-
-    haplotypecallerSplitIntervals(alnInputFinalBranched.WGS.combine(haplotypecallerIntervalList))
-    haplotypecallerSplitIntervals.out
-    //|view
-    |set {splitintervalout_test}
-    splitintervalout_test
-    .groupTuple(size:17)
-    | view    
-
-
-
-        |branch {meta, aln ->
-            WGS: (meta.panel=~/WG/ || meta.panel=~/NGC/)
-                return [meta + [datatype:"WGS",roi:"$WES_ROI"],aln]
-            AV1: (meta.panel=~/AV1/)
-                return [meta + [datatype:"targeted",roi:"$AV1_ROI"],aln]
-            MV1: (meta.panel=~/MV1/)
-                return [meta + [datatype:"targeted",roi:"$MV1_ROI"],aln]
-            WES: (meta.panel=~/EV8/ ||meta.panel=~/EV7/)
-                return [meta + [datatype:"targeted",roi:"$WES_ROI"],aln]
-            undetermined: true
-                return [meta + [datatype:"unset",analyzed:"NO"],aln]
-            [meta, aln]
-        }
-              | set {cramInputBranched}
-    
-        cramInputBranched.MV1.concat(cramInputBranched.AV1).concat(cramInputBranched.WES).concat(cramInputBranched.WGS)
-        |set {cramInputReMerged}
-    
-        cramInputReMerged.view()
-      */
-            
-       // }
-       // |set {alnInputFinal}
-
-       // alnInputFinal.view()
-        //SUB_VARIANTCALL(alnInputFinal)
-/*
-    Working, 240925:
-        preprocessOutAln
-        |map {meta, cram,crai ->
-            tuple(meta,[cram,crai])}
-        |set {alnInputFinal}
-
-        alnInputFinal.view()
-    End
-
-    if (!params.fastqInput && !params.fastq && !params.spring) {
-        inputFiles_symlinks_cram(alnInputFinal) // new channel structure: val(meta), path(data)
-
-    }
-
-
-    if (!params.panel || params.panel =="WGS_CNV"|| params.panel =="NGC") { //i.e. if WGS data
-
-        if (!params.skipVariants) {
-            SUB_VARIANTCALL_WGS(alnInputFinal)
-        }
-        if (!params.skipSV) {
-            SUB_CNV_SV(alnInputFinal)
-        }
-        if (!params.skipSTR) {
-            SUB_STR(alnInputFinal)
-        }
-        
-        if (!params.skipSMN) {
-        SUB_SMN(alnInputFinal)
-        }
-
-    }
-
-    if (params.panel && params.panel!="WGS_CNV"&& params.panel!="NGC") {
-
-        SUB_VARIANTCALL(alnInputFinal)
-
-        if (params.panel=="MV1") {
-            vntyper_newRef(readsInputFinal)
-        }
-    }
-  */  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*
 

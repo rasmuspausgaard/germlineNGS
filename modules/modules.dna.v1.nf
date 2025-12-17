@@ -582,7 +582,7 @@ process combineGVCF {
     label 'medium'
     tag "$meta.id"
 
-    publishDir "${variantStorage}/gVCF/${panelID_storage}/", mode: 'copy', pattern:'*.g.*' // storageDir= /lnx01_data3/storage/alignedData/hg38/
+    publishDir "${variantStorage}/gVCF/${panelID_storage}/", mode: 'copy', pattern:'*.g.*' 
 
 
     input:
@@ -715,7 +715,7 @@ process manta {
     gzip -dc ${meta.id}.${genome_version}.manta.diploidSV.vcf.gz > ${meta.id}.${genome_version}.manta.diploidSV.vcf
 
     singularity exec  \
-    --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
+    --bind ${s_bind} ${localProgramPath}/FindSV/FindSV.simg svdb \
     --query \
     --query_vcf ${meta.id}.${genome_version}.manta.diploidSV.vcf \
     --sqdb ${mantaSVDB} > ${meta.id}.${genome_version}.manta.AFanno.vcf 
@@ -765,7 +765,7 @@ process lumpy {
     tabix -p vcf ${meta.id}.${genome_version}.Lumpy.all.vcf.gz
 
     singularity exec  \
-    --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
+    --bind ${s_bind} ${localProgramPath}/FindSV/FindSV.simg svdb \
     --query \
     --query_vcf ${meta.id}.${genome_version}.Lumpy.all.vcf.gz \
     --sqdb ${lumpySVDB} > ${meta.id}.${genome_version}.lumpy.AFanno.vcf 
@@ -797,12 +797,12 @@ process delly126 {
 
     script:
     """
-    /data/shared/programmer/BIN/delly126 call \
+    ${localProgramPath}/BIN/delly126 call \
     -g ${genome_fasta} \
     ${aln[0]} > ${meta.id}.${genome_version}.delly.raw.vcf
 
     singularity exec  \
-    --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
+    --bind ${s_bind} ${localProgramPath}/FindSV/FindSV.simg svdb \
     --query \
     --query_vcf ${meta.id}.${genome_version}.delly.raw.vcf \
     --sqdb ${dellySVDB} > ${meta.id}.${genome_version}.delly.AFanno.vcf 
@@ -874,7 +874,7 @@ process cnvkitExportFiles {
     -o ${meta.id}.${genome_version}.cnvkit.cnr.seg
 
     singularity exec  \
-    --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
+    --bind ${s_bind} ${localProgramPath}/FindSV/FindSV.simg svdb \
     --query \
     --query_vcf ${meta.id}.${genome_version}.cnvkit.vcf \
     --sqdb ${cnvkitSVDB} > ${meta.id}.${genome_version}.cnvkit.AFanno.vcf 
@@ -906,14 +906,14 @@ process merge4callerSVDB {
     script:
     """
     singularity exec  \
-    --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
+    --bind ${s_bind} ${localProgramPath}/FindSV/FindSV.simg svdb \
     --merge \
     --overlap 0.6 \
     --vcf ${manta_vcf}:MANTA ${lumpy_vcf}:LUMPY ${cnvkit_vcf}:CNVKIT ${delly_vcf}:DELLY \
     --priority LUMPY,MANTA,CNVKIT,DELLY > ${meta.id}.4callerNEW.SVDB.5pctAF.60pctOverlap.vcf
 
     singularity exec  \
-    --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
+    --bind ${s_bind} ${localProgramPath}/FindSV/FindSV.simg svdb \
     --merge \
     --overlap 0.8 \
     --vcf ${manta_vcf}:MANTA ${lumpy_vcf}:LUMPY ${cnvkit_vcf}:CNVKIT ${delly_vcf}:DELLY \
@@ -921,7 +921,7 @@ process merge4callerSVDB {
 
 
     singularity exec  \
-    --bind ${s_bind} /data/shared/programmer/FindSV/FindSV.simg svdb \
+    --bind ${s_bind} ${localProgramPath}/FindSV/FindSV.simg svdb \
     --merge \
     --overlap 1.0 \
     --vcf ${manta_vcf}:MANTA ${lumpy_vcf}:LUMPY ${cnvkit_vcf}:CNVKIT ${delly_vcf}:DELLY \
@@ -943,7 +943,7 @@ process expansionHunter {
     
     script:
     """
-    /data/shared/programmer/BIN/ExpansionHunter500 \
+    ${localProgramPath}/BIN/ExpansionHunter500 \
     --reads ${aln[0]} \
     --reference ${genome_fasta} \
     --variant-catalog ${expansionhunter_catalog} \
@@ -976,7 +976,7 @@ process stripy {
     mkdir ${meta.id}.stripy/
     sleep 5
 
-    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    python3 ${localProgramPath}/stripy-pipeline-main/stri.py \
     --genome ${params.genome} \
     --reference ${genome_fasta} \
     --locus ABCD3,AFF2,AR,ARX_1,ARX_2,ATN1,ATXN1,ATXN10,ATXN2,ATXN3,ATXN7,ATXN8OS,BEAN1,C9ORF72,CACNA1A,CBL,CNBP,COMP,CSTB,DAB1,DIP2B,DMD,DMPK,EIF4A3,FGF14,FMR1,FOXL2,FXN,GIPC1,GLS,HOXA13_1,HOXA13_2,HOXA13_3,HOXD13,HTT,JPH3,LRP12,MARCHF6,NIPA1,NOP56,NOTCH2NLC,NUTM2B-AS1,PABPN1,PHOX2B,PPP2R2B,PRDM12,PPNP,RAPGEF2,RFC1,RILPL1,RUNX2,SAMD12,SOX3,STARD7,TBP,TBX1,TCF4,THAP11,TNRC6A,VWA1,XYLT1,YEATS2,ZFHX3,ZIC2,ZIC3 \
@@ -985,7 +985,7 @@ process stripy {
 
     mv ${meta.id}.stripy/${aln[0]}.html ${meta.id}.stripy.ALL.html
 
-    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    python3 ${localProgramPath}/stripy-pipeline-main/stri.py \
     --genome ${params.genome} \
     --reference ${genome_fasta} \
     --locus ATN1,ATXN1,ATXN10,ATXN2,ATXN3,ATXN7,ATXN8OS,BEAN1,CACNA1A,CSTB,DAB1,FGF14,FMR1,FXN,NOP56,NOTCH2NLC,PPP2R2B,RFC1,TBP,YEATS2 \
@@ -994,7 +994,7 @@ process stripy {
 
     mv ${meta.id}.stripy/${aln[0]}.html ${meta.id}.stripy.ataksi.html
 
-    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    python3 ${localProgramPath}/stripy-pipeline-main/stri.py \
     --genome ${params.genome} \
     --reference ${genome_fasta} \
     --locus ATN1,ATXN1,ATXN2,ATXN3,ATXN10,ATXN80S,C9ORF72,CACNA1A,FXN,JPH3,NOTCH2NLC,PPP2R2B,TBP \
@@ -1003,7 +1003,7 @@ process stripy {
 
     mv ${meta.id}.stripy/${aln[0]}.html ${meta.id}.stripy.myotoni.html
 
-    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    python3 ${localProgramPath}/stripy-pipeline-main/stri.py \
     --genome ${params.genome} \
     --reference ${genome_fasta} \
     --locus RFC1 \
@@ -1012,7 +1012,7 @@ process stripy {
 
     mv ${meta.id}.stripy/${aln[0]}.html ${meta.id}.stripy.neuropati.html
 
-    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    python3 ${localProgramPath}/stripy-pipeline-main/stri.py \
     --genome ${params.genome} \
     --reference ${genome_fasta} \
     --locus AR,ATXN2,C9ORF72,NOP56,NOTCH2NLC \
@@ -1020,7 +1020,7 @@ process stripy {
     --input ${aln[0]}
     mv ${meta.id}.stripy/${aln[0]}.html ${meta.id}.stripy.ALS_FTD.html
 
-    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    python3 ${localProgramPath}/stripy-pipeline-main/stri.py \
     --genome ${params.genome} \
     --reference ${genome_fasta} \
     --locus CNBP,DMD,DMPK,GIPC1,LRP12,NOTCH2NLC,NUTM2B-AS1,PABPN1,RILPL1 \
@@ -1028,7 +1028,7 @@ process stripy {
     --input ${aln[0]}
     mv ${meta.id}.stripy/${aln[0]}.html ${meta.id}.stripy.myopati.html
 
-    python3 /data/shared/programmer/stripy-pipeline-main/stri.py \
+    python3 ${localProgramPath}/stripy-pipeline-main/stri.py \
     --genome ${params.genome} \
     --reference ${genome_fasta} \
     --locus CSTB,MARCHF6,RAPGEF2,SAMD12,STARD7,TNRC6A,YEATS2 \
@@ -1059,9 +1059,6 @@ process smnCopyNumberCaller {
     conda "${params.py38}"
 
     publishDir "${outputDir}/SMNcallerWGS/", mode: 'copy'
-
-    conda '/lnx01_data3/shared/programmer/miniconda3/envs/py38/' // contains python modules required by smncopynumbercaller
-
     input:
     path(manifest)
 
@@ -1070,14 +1067,14 @@ process smnCopyNumberCaller {
     
     script:
     """    
-    python /data/shared/programmer/SMNCopyNumberCaller-1.1.2/smn_caller.py \
+    python ${localProgramPath}/SMNCopyNumberCaller-1.1.2/smn_caller.py \
     --manifest ${manifest} \
     --genome ${smncaller_assembly} \
     --prefix ${params.rundir} \
     --threads ${task.cpus} \
     --outDir .
 
-    python /data/shared/programmer/SMNCopyNumberCaller-1.1.2/smn_charts.py \
+    python ${localProgramPath}/SMNCopyNumberCaller-1.1.2/smn_charts.py \
     -s ${params.rundir}.json \
     -o .
     """
@@ -1108,7 +1105,7 @@ process vntyper_newRef {
     -ref_VNTR ${vntyperREF}/MUC1-VNTR_NEW.fa \
     --fastq \
     --ignore_advntr \
-    -p /data/shared/programmer/vntyper/VNtyper/
+    -p ${localProgramPath}/vntyper/VNtyper/
     """
 }
 

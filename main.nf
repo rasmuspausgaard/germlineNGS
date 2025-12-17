@@ -6,40 +6,10 @@ date=new Date().format( 'yyMMdd' )
 user="$USER"
 runID="${date}.${user}"
 
-//Unset parameters
 /*
-    params.help                     =false
-    params.panel                    =null
-    params.samplesheet              =null
-    params.preprocessOnly           =null
-    params.keepwork                 =null
-    params.nomail                   =null
-    params.hg38v1                   =null
-    params.hg38v2                   =null
-    params.cram                     =null
-    params.fastq                    =null
-    params.spring                   =null
-
-    params.skipJointGenotyping      =null
-    params.fastqInput               =null
-
-    params.skipSV                   =null
-    params.skipVariants             =null
-    params.skipQC                   =null
-    params.skipSTR                  =null
-    params.skipSMN                  =null
-    params.subdirs                  =null
-    params.gatk                     =null
-    params.copyCram                 =null
-    params.single                   =null
-    //Preset parameters:
-
-    params.server                   =null
-    params.genome                   = "hg38"
-*/
 params.outdir                   = "${launchDir.baseName}.Results"
 params.rundir                   = "${launchDir.baseName}"
-
+*/
 
 def helpMessage() {
     log.info"""
@@ -154,58 +124,6 @@ def FastqCRAM_error() {
 if (params.cram && params.fastq) exit 0, FastqCRAM_error()
 
 
-switch (params.gatk) {
-
-    case 'danak':
-    gatk_image="gatk419.sif";
-    break;
-    case 'new':
-    gatk_image="gatk4400.sif";
-    break;
-    case 'v45':
-    gatk_image="gatk4500.sif";
-    default:
-        if (params.panel=="AV1" || params.panel=="GV3" || params.panel=="CV5"){
-            gatk_image="gatk419.sif";
-        }
-        else {
-            gatk_image="gatk4400.sif";
-        }
-    break;
-}
-
-
-
-
-switch (params.server) {
-
-    case 'lnx01':
-        s_bind="/data/:/data/,/lnx01_data2/:/lnx01_data2/,/lnx01_data3/:/lnx01_data3/";
-        simgpath="/data/shared/programmer/simg";
-        tmpDIR="/data/TMP/TMP.${user}/";
-        gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
-        multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
-        dataStorage="/lnx01_data3/storage/";
-        //params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/hg38v3/hg38v3_scatter10_IntervalSubdiv/*.interval_list";
-        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/hg38v3/hg38v3_scatter20_BWI/*.interval_list";
-        modules_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/modules";
-        subworkflow_dir="/home/mmaj/scripts_lnx01/nextflow_lnx01/dsl2/subworkflows";
-        dataArchive="/lnx01_data2/shared/dataArchive";
-        refFilesDir="/data/shared/genomes";
-    break;
-
-    default:
-        s_bind="/data/:/data/,/lnx01_data2/:/lnx01_data2/,/fast/:/fast/,/lnx01_data3/:/lnx01_data3/,/lnx01_data4/:/lnx01_data4/";
-        simgpath="/data/shared/programmer/simg";
-        tmpDIR="/fast/TMP/TMP.${user}/";
-        gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
-        multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
-        dataStorage="/lnx01_data3/storage/";
-        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/hg38v3/hg38v3_scatter20_BWI/*.interval_list";
-        dataArchive="/lnx01_data2/shared/dataArchive";
-        refFilesDir="/fast/shared/genomes";
-    break;
-}
 
 
 /*

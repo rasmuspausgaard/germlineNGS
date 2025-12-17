@@ -8,233 +8,6 @@ user="$USER"
 runID="${date}.${user}"
 
 
-// Server and reference independent variables
-multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
-vntyperREF="/data/shared/genomes/hg19/program_DBs/vntyper"
-//////////////////////////// SWITCHES ///////////////////////////////// 
-
-switch (params.gatk) {
-
-    case 'danak':
-    gatk_image="gatk419.sif";
-    break;
-    case 'new':
-    gatk_image="gatk4400.sif";
-    break;
-    case 'v45':
-    gatk_image="gatk4500.sif";
-    default:
-        if (params.panel=="AV1" || params.panel=="GV3" || params.panel=="CV5"){
-            gatk_image="gatk419.sif";
-        }
-        else {
-            gatk_image="gatk4400.sif";
-        }
-    break;
-}
-
-switch (params.server) {
-
-    case 'lnx01':
-        s_bind="/data/:/data/,/lnx01_data2/:/lnx01_data2/";
-        simgpath="/data/shared/programmer/simg";
-        tmpDIR="/data/TMP/TMP.${user}/";
-        gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
-        multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
-        tank_storage="/home/mmaj/tank.kga2/data/data.storage.archive/";
-        dataStorage="/lnx01_data3/storage/";
-        refFilesDir="/data/shared/genomes";
-        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/hg38v3/hg38v3_scatter10_IntervalSubdiv/*.interval_list";
-    break;
-
-    default:
-        s_bind="/data/:/data/,/lnx01_data2/:/lnx01_data2/,/fast/:/fast/,/lnx01_data3/:/lnx01_data3/,/lnx01_data4/:/lnx01_data4/";
-        simgpath="/data/shared/programmer/simg";
-        tmpDIR="/fast/TMP/TMP.${user}/";
-        gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
-        multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
-        dataStorage="/lnx01_data3/storage/";
-        params.intervals_list="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/hg38v3/hg38v3_scatter20_BWI/*.interval_list";
-        dataArchive="/lnx01_data2/shared/dataArchive";
-        refFilesDir="/fast/shared/genomes";
-    break;
-}
-
-
-
-/*
-switch (params.server) {
-
-    case 'lnx01':
-        s_bind="/data/:/data/,/lnx01_data2/:/lnx01_data2/";
-        simgpath="/data/shared/programmer/simg";
-        tmpDIR="/data/TMP/TMP.${user}/";
-        gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
-        multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
-        dataStorage="/lnx01_data3/storage/";
-        refFilesDir="/data/shared/genomes";
-    break;
-
-    default:
-        s_bind="/data/:/data/,/lnx01_data2/:/lnx01_data2/,/fast/:/fast/,/lnx01_data3/:/lnx01_data3/,/lnx01_data4/:/lnx01_data4/";
-        simgpath="/data/shared/programmer/simg";
-        tmpDIR="/fast/TMP/TMP.${user}/";
-        gatk_exec="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk";
-        multiqc_config="/data/shared/programmer/configfiles/multiqc_config.yaml"
-        dataStorage="/lnx01_data3/storage/";
-        dataArchive="/lnx01_data2/shared/dataArchive";
-        refFilesDir="/data/shared/genomes";
-    break;
-}
-*/
-
-switch (params.genome) {
-    case 'hg19':
-        assembly                   ="hg19"
-        // Genome assembly files:
-      //  genome_fasta            ="/data/shared/genomes/hg19/human_g1k_v37.fasta"
-      //  genome_fasta_fai        ="/data/shared/genomes/hg19/human_g1k_v37.fasta.fai"
-      //  genome_fasta_dict       ="/data/shared/genomes/hg19/human_g1k_v37.dict"
-            genome_fasta           = "/data/shared/genomes/hg19/pacbio_hg19/human_hs37d5.fasta"
-            genome_fasta_fai       = "/data/shared/genomes/hg19/pacbio_hg19/human_hs37d5.fasta.fai"
-            genome_fasta_dict      = "/data/shared/genomes/hg19/pacbio_hg19/human_hs37d5.fasta.dict"
-        genome_version             = "hg19v2"
-            ROI                    ="/data/shared/genomes/hg19/interval.files/200108.NCBIrefseq.codingexons.nocontig.20bp.merged.sorted.bed"
-            WES_ROI                ="/data/shared/genomes/hg19/interval.files/200108.NCBIrefseq.codingexons.nocontig.20bp.merged.sorted.bed"
-        smoove_exclude          ="/data/shared/genomes/hg19/interval.files/smoove.hg19.excluderegions.bed"
-
-        //sv databases wont work, but output not used. Required to get single sample SV calls:
-        svdb_databases          ="/data/shared/genomes/hg38/inhouse_DBs/hg38v3/svdb_AF"    
-        mantaSVDB               ="${svdb_databases}/mantaSVDB315.db"
-        lumpySVDB               ="${svdb_databases}/lumpySVDB218.db"
-        cnvkitSVDB              ="${svdb_databases}/cnvkitSVDB313.db"
-        dellySVDB               ="${svdb_databases}/dellySVDB112.db"
-    
-    break;
-
-
-    case 'hg38':
-        assembly                ="hg38"
-        spliceai_assembly       ="grch38"
-        smncaller_assembly      ="38"
-        svdb_databases          ="/data/shared/genomes/hg38/inhouse_DBs/hg38v3/svdb_AF"
-        // Genome assembly files:
-        if (params.hg38v1) {
-        genome_fasta            ="${refFilesDir}/hg38/GRCh38.primary.fa"
-        genome_fasta_fai        ="${refFilesDir}/hg38/GRCh38.primary.fa.fai"
-        genome_fasta_dict       ="${refFilesDir}/hg38/GRCh38.primary.dict"
-        genome_version          ="hg38v1"
-        cnvkit_germline_reference_PON="/data/shared/genomes/hg38/inhouse_DBs/hg38v1_primary/cnvkit/wgs_germline_PON/jgmr_45samples.reference.cnn"
-        cnvkit_inhouse_cnn_dir  ="/data/shared/genomes/hg38/inhouse_DBs/hg38v1_primary/cnvkit/wgs_persample_cnn/"
-        inhouse_SV              ="/data/shared/genomes/hg38/inhouse_DBs/hg38v1_primary/"
-        }
-        
-        if (params.hg38v2){
-        genome_fasta            ="${refFilesDir}/hg38/ucsc.hg38.NGS.analysisSet.fa"
-        genome_fasta_fai        ="${refFilesDir}/hg38/ucsc.hg38.NGS.analysisSet.fa.fai"
-        genome_fasta_dict       ="${refFilesDir}/hg38/ucsc.hg38.NGS.analysisSet.dict"
-        genome_version          ="hg38v2"
-        }
-
-        // Current hg38 version (v3): NGC with masks and decoys.
-        if (!params.hg38v2 && !params.hg38v1){
-        genome_fasta            ="${refFilesDir}/hg38/GRCh38_masked_v2_decoy_exclude.fa"
-        genome_fasta_fai        ="${refFilesDir}/hg38/GRCh38_masked_v2_decoy_exclude.fa.fai"
-        genome_fasta_dict       ="${refFilesDir}/hg38/GRCh38_masked_v2_decoy_exclude.dict"
-        genome_version          ="hg38v3"
-        cnvkit_germline_reference_PON="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/cnvkit/hg38v3_109samples.cnvkit.reference.cnn"
-        cnvkit_inhouse_cnn_dir  ="/data/shared/genomes/hg38/inhouse_DBs/hg38v3_primary/cnvkit/wgs_persample_cnn/"
-    //  inhouse_SV              ="/data/shared/genomes/hg38/inhouse_DBs/hg38v3/"
-        inhouse_SV              ="/lnx01_data4/archive/variantStorage/hg38/KGVejle/structuralVariants/"
-        }
-
-        // Gene and transcript annotation files:
-
-        gencode_gtf             = "${refFilesDir}/hg38/gene.annotations/gencode.v36.annotation.gtf"
-        gencode_gff3            = "${refFilesDir}/hg38/gene.annotations/gencode.v36.annotation.gff3"
-     
-        //Program  files:
-        msisensor_list          ="${refFilesDir}/hg38/program_DBs/msisensor/hg38_msisensor_scan.txt"
-        intervalList_GATK       ="/data/shared/genomes/hg38/interval.files/WGS_splitIntervals/hg38v3/hg38v3_scatter20_BWI/*.interval_list";             
-      
-        //Structural variants
-        delly_exclude           ="/data/shared/genomes/hg38/program_DBs/delly/human.hg38.excl.tsv"
-        smoove_exclude          ="/data/shared/genomes/hg38/interval.files/smoove/smoove.hg38.excluderegions.bed"
-        smoove_gff              ="/data/shared/genomes/hg38/gene.annotations/GRCh38_latest_genomic.gff.gz"
-
-
-        //inhouse SV AF databases: 
-        mantaSVDB               ="${svdb_databases}/mantaSVDB315.db"
-        lumpySVDB               ="${svdb_databases}/lumpySVDB218.db"
-        cnvkitSVDB              ="${svdb_databases}/cnvkitSVDB313.db"
-        //tidditSVDB="${svdb_databases}/tidditSVDB.db"
-        dellySVDB               ="${svdb_databases}/dellySVDB112.db"
-
-
-        //Repeat Expansions:
-        expansionhunter_catalog ="/data/shared/genomes/hg38/program_DBs/expansionHunter/expansionHunter_hg38_stripy.variant_catalog.json"
-        hipSTR_bed              ="/data/shared/genomes/hg38/interval.files/STRs/GRCh38.hipstr_reference.bed"
-
-        // Somatic calling files (GATK Mutect2 pipeline):
-        gatk_wgs_pon            ="/data/shared/genomes/hg38/program_DBs/GATK/somatic/somatic-hg38_1000g_pon.hg38.vcf.gz"
-        mutect_gnomad           ="/data/shared/genomes/hg38/program_DBs/GATK/somatic/somatic-hg38_af-only-gnomad.hg38.vcf.gz"
-        gatk_contamination_ref  ="/data/shared/genomes/hg38/program_DBs/GATK/somatic/somatic-hg38_small_exac_common_3.hg38.vcf.gz"
-
-        // Program indexes:
-        pcgr_assembly           ="grch38"
-        sequenza_cg50_wig       ="/data/shared/genomes/hg38/program_DBs/sequenza/GRCh38.primary.cg50.sequenza.wig.gz"
-
-
-        // Regions & variants:
-        qualimap_ROI            ="/data/shared/genomes/hg38/interval.files/210129.hg38.gencode36.codingexons.20bp.SM.6col.bed"
-        gencode_exons_ROI       ="/data/shared/genomes/hg38/interval.files/210129.hg38.gencode36.codingexons.SM.bed"
-
-        ROI                     ="/data/shared/genomes/hg38/interval.files/exome.ROIs/211130.hg38.refseq.gencode.fullexons.50bp.SM.bed"
-        
-        //ROI="/data/shared/genomes/hg38/interval.files/210129.hg38.gencode36.codingexons.20bp.SM.bed"
-
-        callable_regions        ="/data/shared/genomes/hg38/interval.files/GATK.hg38.callable.regions.bed"
-        manta_callable_regions  ="/data/shared/genomes/hg38/interval.files/manta/GATK.hg38.callable.regions.bed.gz"
-
-        dbsnp                   ="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_Homo_sapiens_assembly38.dbsnp138.vcf"
-        KGindels                ="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_Homo_sapiens_assembly38.known_indels.vcf.gz"
-        KGindels_idx            ="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_Homo_sapiens_assembly38.known_indels.vcf.gz.tbi"
-
-        KGmills                 ="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
-        KGmills_idx             ="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_Mills_and_1000G_gold_standard.indels.hg38.vcf.gz.tbi"
-        KG_p1_High_snps         ="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_1000G_phase1.snps.high_confidence.hg38.vcf.gz"
-
-        hapmap                  ="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_hapmap_3.3.hg38.vcf.gz"
-        omni                    ="/data/shared/genomes/hg38/program_DBs/GATK/resources_broad_hg38_v0_1000G_omni2.5.hg38.vcf.gz"
-        AV1_ROI                 ="/data/shared/genomes/${params.genome}/interval.files/panels/av1.hg38.ROI.v2.bed"
-        CV1_ROI                 ="/data/shared/genomes/${params.genome}/interval.files/panels/cv3.hg38.ROI.bed"
-        CV2_ROI                 ="/data/shared/genomes/${params.genome}/interval.files/panels/cv3.hg38.ROI.bed"
-        CV3_ROI                 ="/data/shared/genomes/${params.genome}/interval.files/panels/cv3.hg38.ROI.bed"
-        CV4_ROI                 ="/data/shared/genomes/${params.genome}/interval.files/panels/cv4.hg38.ROI.bed"
-        CV5_ROI                 ="/data/shared/genomes/${params.genome}/interval.files/panels/cv5.hg38.ROI.bed"
-        GV3_ROI                 ="/data/shared/genomes/${params.genome}/interval.files/panels/gv3.hg38.ROI.v2.bed"
-        NV1_ROI                 ="/data/shared/genomes/${params.genome}/interval.files/panels/nv1.hg38.ROI.bed"
-        WES_ROI                 ="/data/shared/genomes/hg38/interval.files/exome.ROIs/211130.hg38.refseq.gencode.fullexons.50bp.SM.bed"
-        MV1_ROI                 ="/data/shared/genomes/${params.genome}/interval.files/panels/muc1.hg38.coordinates.bed"
-    break;
-
-    case 't2t':
-        assembly                   = "t2t"
-        genome_mmi                 = "/data/shared/genomes/t2t/pacbio_t2t/chm13v2p0_maskedY_rCRS.mmi"
-        genome_fasta               = "/data/shared/genomes/t2t/pacbio_t2t/chm13v2p0_maskedY_rCRS.fasta"
-        genome_fasta_fai           = "/data/shared/genomes/t2t/pacbio_t2t/chm13v2p0_maskedY_rCRS.fasta.fai"
-        genome_fasta_dict          = "/data/shared/genomes/t2t/pacbio_t2t/chm13v2p0_maskedY_rCRS.dict"
-        genome_version             = "T2Tv1"
-        intervalList_GATK          ="/data/shared/genomes/t2t/interval.files/WGS_splitIntervals/t2t_15intervals_BWI_OVERFLOW/*.interval_list"
-
-        pbSV_trf                   = "/data/shared/genomes/t2t/pacbio_t2t/chm13v2p0_maskedY_rCRS.trf.bed"
-        ROI                        = "/data/shared/genomes/t2t/interval.files/250314.T2T.RefSeq.fullExons+50bp.bed"
-        WES_ROI                    = "/data/shared/genomes/t2t/interval.files/250314.T2T.RefSeq.fullExons+50bp.bed"
-
-    break;
-
-}
-
 switch (params.panel) {
     case "AV1":
         ROI="${AV1_ROI}";
@@ -305,9 +78,8 @@ switch (params.panel) {
 
 
 
-outputDir="${params.outdir}/"
-variantStorage="${dataStorage}/variantStorage/${params.genome}/"
-cramStorage="${dataStorage}/alignedData/${params.genome}/"
+gatk_exec ="singularity run -B ${s_bind} ${simgpath}/${gatk_image} gatk"
+
 
 
 
@@ -320,7 +92,7 @@ channel
 
 log.info """\
 ======================================================
-Clinical Genetics Vejle: GermlineNGS v3 + SLURM
+Clinical Genetics Vejle: GermlineNGS v4 + SLURM
 ======================================================
 Genome       : $params.genome
 Genome FASTA : $genome_fasta
@@ -394,7 +166,7 @@ process inputFiles_symlinks_spring{
 process spring_decompress {
     tag "$meta.id"
     label 'medium'
-    conda '/data/shared/programmer/miniconda3/envs/spring'
+    conda "${params.spring}"
 
     publishDir "${outputDir}/fastqFromSpring/", mode: 'copy', pattern:"*.fastq.gz"
 
@@ -510,7 +282,7 @@ process align {
 process markDup_bam {
     label 'high'
     tag "$meta.id"
-    conda '/lnx01_data3/shared/programmer/miniconda3/envs/sambamvcftools/' 
+    conda "${params.sambamvcftools}"
 
     publishDir "${outputDir}/BAM/", mode: 'copy', pattern: "*.BWA.MD.ba*"
     publishDir "${outputDir}/CRAM/", mode: 'copy', pattern: "*.BWA.MD.cr*"
@@ -542,7 +314,7 @@ process markDup_bam {
 process markDup_cram {
     label 'high'
     tag "$meta.id"
-    conda '/lnx01_data3/shared/programmer/miniconda3/envs/sambamvcftools/' 
+    conda "${params.sambamvcftools}"
 
     publishDir "${outputDir}/CRAM/", mode: 'copy', pattern: "*.BWA.MD.cr*"
 
@@ -576,7 +348,7 @@ process markDup_cram {
 process bamtools {
     label 'low'
     tag "$meta.id"
-    conda '/lnx01_data3/shared/programmer/miniconda3/envs/sambamvcftools/' 
+    conda "${params.sambamvcftools}"
 
     publishDir "${outputDir}/QC/", mode: 'copy'
     
@@ -613,7 +385,7 @@ process samtools {
 
     script:
     """
-    singularity run -B ${s_bind} ${simgpath}/samtools.sif samtools \
+    samtools \
     stats \
     ${aln[0]} > ${meta.id}.samtools.sample.stats.txt
     """
@@ -623,7 +395,7 @@ process samtools {
 process qualimap {
     label 'high'
     tag "$meta.id"
-    conda '/lnx01_data3/shared/programmer/miniconda3/envs/qualimapSamtools/' 
+    conda "${params.qualimapSamtools}"
 
     publishDir "${outputDir}/QC/qualimap/", mode: 'copy'
 
@@ -668,6 +440,7 @@ process collectWGSmetrics {
 
 process multiQC {
     label 'low'
+    conda "${params.multiqc}"
 
     publishDir "${outputDir}/QC/", mode: 'copy'
 
@@ -688,7 +461,7 @@ process multiQC {
 //////////////////////////// VARIANT CALLING MODULES //////////////////////////////////
 process haplotypecaller{
         tag "$meta.id"
-
+        label 'medium'
         publishDir "${outputDir}/Variants/per_sample/", mode: 'copy', pattern: "*.HC.*"
         publishDir "${outputDir}/Variants/GVCF_files/", mode: 'copy', pattern: "*.g.*"
         publishDir "${outputDir}/HaplotypeCallerBAMout/", mode: 'copy', pattern: "*.HCbamout.*"
@@ -744,7 +517,7 @@ process haplotypecaller{
 
 process jointgenotyping {
         errorStrategy 'ignore'
-        cpus 4
+        label 'medium'
         //publishDir "${outputDir}/Variants/", mode: 'copy', pattern: "*.VarSeq.*"
         //publishDir "${outputDir}/Variants/GVCF_files/", mode: 'copy', pattern: "*.merged.g.*"
        
@@ -1182,7 +955,7 @@ process expansionHunter {
 process stripy {
     label 'low'
     tag "$meta.id"
-    conda '/lnx01_data3/shared/programmer/miniconda3/envs/py38/' // contains python modules required by stripy
+    conda "${params.py38}"
 
     publishDir "${outputDir}/repeatExpansions/STRipy_ALL/", mode: 'copy',pattern:"*.ALL.html"
     publishDir "${outputDir}/repeatExpansions/STRipy_ataksi/", mode: 'copy',pattern:"*.ataksi.html"
@@ -1283,7 +1056,7 @@ process prepareManifestSMN {
 
 process smnCopyNumberCaller {
     label 'medium'
-    conda '/lnx01_data3/shared/programmer/miniconda3/envs/py38/' // contains python modules required by smncopynumbercaller
+    conda "${params.py38}"
 
     publishDir "${outputDir}/SMNcallerWGS/", mode: 'copy'
 

@@ -248,7 +248,6 @@ if (params.fastq || params.fastqInput) {
         meta = [id:sample+"_"+ngstype+"_"+material, npn:sample, fullpanel:ngstype,panel:panel, subpanel:subpanel]
         [meta, reads]
     }
-    |view
     | branch {meta, reads ->
         WGS: (meta.panel=~/WG/ || meta.panel=~/NGC/)
             return [meta + [outdir:meta.fullpanel,datatype:"WGS",roi:"$WES_ROI"],reads]

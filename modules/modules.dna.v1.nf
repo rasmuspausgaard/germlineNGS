@@ -99,10 +99,8 @@ Genome FASTA : $genome_fasta
 ROI          : $ROI
 AnalysisType : $params.panel
 GATK ver.    : $gatk_image
-Server       : $params.server
 RunID        : $runID
 PanelID      : $panelID
-
 Script start : $date2
 """
 //IntervalList : $intervalList_GATK

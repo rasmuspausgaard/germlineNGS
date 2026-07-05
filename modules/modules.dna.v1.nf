@@ -113,7 +113,7 @@ workDir       : ${workflow.workDir}
 process inputFiles_symlinks_fq{
     label 'low'
     
-    publishDir "${outputDir}/input_symlinks/", mode: 'symlink', pattern:'*.{fastq,fq}.gz'
+    publishDir "${outputDir}/input_symlinks/", mode: 'link', pattern:'*.{fastq,fq}.gz'
     
     input:
     tuple val(meta), path(reads)// from read_input2

@@ -102,6 +102,7 @@ GATK ver.    : $gatk_image
 RunID        : $runID
 PanelID      : $panelID
 Script start : $date2
+workDir       : ${workflow.workDir}
 """
 //IntervalList : $intervalList_GATK
 

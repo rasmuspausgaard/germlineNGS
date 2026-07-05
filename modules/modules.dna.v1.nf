@@ -112,7 +112,7 @@ Script start : $date2
 process inputFiles_symlinks_fq{
     label 'low'
     
-    publishDir "${outputDir}/input_symlinks/", mode: 'link', pattern:'*.{fastq,fq}.gz'
+    publishDir "${outputDir}/input_symlinks/", mode: 'symlink', pattern:'*.{fastq,fq}.gz'
     
     input:
     tuple val(meta), path(reads)// from read_input2
@@ -130,8 +130,8 @@ process inputFiles_symlinks_fq{
 process inputFiles_symlinks_cram{
     label 'low'
    
-    publishDir "${outputDir}/input_symlinks/", mode: 'link', pattern: '*.{ba,cr}*'
-    publishDir "${outputDir}/Variants/CRAM_symlinks/", mode: 'link', pattern: '*.{ba,cr}*'
+    publishDir "${outputDir}/input_symlinks/", mode: 'symlink', pattern: '*.{ba,cr}*'
+    publishDir "${outputDir}/Variants/CRAM_symlinks/", mode: 'symlink', pattern: '*.{ba,cr}*'
    
     input:
     tuple val(meta), path(aln)// from symlink_input
@@ -148,7 +148,7 @@ process inputFiles_symlinks_cram{
 process inputFiles_symlinks_spring{
     label 'low'
 
-    publishDir "${outputDir}/input_symlinks/", mode: 'link', pattern: '*.spring'
+    publishDir "${outputDir}/input_symlinks/", mode: 'symlink', pattern: '*.spring'
 
     input:
     tuple val(meta), path(spring)    

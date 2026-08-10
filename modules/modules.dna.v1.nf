@@ -165,7 +165,6 @@ process inputFiles_symlinks_spring{
 process spring_decompress {
     tag "$meta.id"
     label 'medium'
-    conda "${params.condaSpring}"
 
     input:
     tuple val(meta), path(springfile)
@@ -175,9 +174,11 @@ process spring_decompress {
 
     script:
     """
-    spring -d \
-    -i ${springfile} \
-    -o ${meta.npn}-WG4_NGC-78_S15_R1_001.fastq ${meta.npn}-WG4_NGC-78_S15_R2_001.fastq
+    /lnx01_data2/shared/testdata/SPRING/build/spring \
+        -d \
+        -i ${springfile} \
+        -o ${meta.npn}-WG4_NGC-78_S15_R1_001.fastq \
+           ${meta.npn}-WG4_NGC-78_S15_R2_001.fastq
     """
 }
 

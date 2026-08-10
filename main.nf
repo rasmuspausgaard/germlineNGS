@@ -382,13 +382,34 @@ if (!params.fastq && !params.fastqInput && !params.spring){
 
 if (params.spring && !params.samplesheet) {
 
-    spring_reads="${params.spring}/${reads_pattern_spring}"
-
+    spring_reads = "${params.spring}/${reads_pattern_spring}"
 
     Channel
-    .fromPath(spring_reads, checkIfExists: true)
-    .map { tuple(it.baseName.tokenize('-').get(0)+"_"+it.baseName.tokenize('-').get(1),it) }
-    .set {spring_input_ch}
+        .fromPath(spring_reads, checkIfExists: true)
+        .map { springfile ->
+
+            // SPRING archive names can contain old archive metadata after the sample ID, e.g.
+            // D170078-WGS-Normal-60cytobrf-230821_A01237_AHHWK7DSX7.spring
+            // Only the sample ID before the first '-' is reused.
+            def sample = springfile.baseName.tokenize('-')[0]
+
+            // Build metadata exactly as the normal FASTQ parser would for:
+            // D170078-WG4_NGC-78_S15_R1_001.fastq
+            // D170078-WG4_NGC-78_S15_R2_001.fastq
+            def meta = [
+                id        : "${sample}_WG4_NGC_78",
+                npn       : sample,
+                fullpanel : "WG4_NGC",
+                panel     : "WG4",
+                subpanel  : "NGC",
+                outdir    : "WG4_NGC",
+                datatype  : "WGS",
+                roi       : "$WES_ROI"
+            ]
+
+            tuple(meta, springfile)
+        }
+        .set { spring_input_ch }
 }
 ////////////////////////////////////////////////////
 

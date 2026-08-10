@@ -1120,11 +1120,10 @@ workflow SUB_SPRING_DECOMPRESS {
     spring_input_ch
 
     main:
-    inputFiles_symlinks_spring(spring_input_ch)
     spring_decompress(spring_input_ch)
-    emit:
-    fq_read_input_spring=spring_decompress.out.spring_fastq
 
+    emit:
+    fq_read_input_spring = spring_decompress.out.spring_fastq
 }
 
 

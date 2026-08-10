@@ -163,8 +163,11 @@ process inputFiles_symlinks_spring{
 }
 
 process spring_decompress {
+
     tag "$meta.id"
     label 'medium'
+
+    stageInMode 'copy'
 
     input:
     tuple val(meta), path(springfile)

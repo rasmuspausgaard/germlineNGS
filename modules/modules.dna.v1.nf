@@ -167,21 +167,17 @@ process spring_decompress {
     label 'medium'
     conda "${params.condaSpring}"
 
-    publishDir "${outputDir}/fastqFromSpring/", mode: 'copy', pattern:"*.fastq.gz"
-
     input:
     tuple val(meta), path(springfile)
 
     output:
-    tuple val(meta), path("*_R1.fastq.gz"), path("*_R2.fastq.gz"),emit: spring_fastq
+    tuple val(meta), path("${meta.npn}-WG4_NGC-78_S15_R*_001.fastq"), emit: spring_fastq
 
     script:
     """
     spring -d \
     -i ${springfile} \
-    -o ${meta.id}_R1.fastq.gz ${meta.id}_R2.fastq.gz \
-    -g
-
+    -o ${meta.npn}-WG4_NGC-78_S15_R1_001.fastq ${meta.npn}-WG4_NGC-78_S15_R2_001.fastq
     """
 }
 

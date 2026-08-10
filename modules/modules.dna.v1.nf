@@ -177,7 +177,7 @@ process spring_decompress {
 
     script:
     """
-    /lnx01_data2/shared/testdata/SPRING/build/spring -d \
+    spring -d \
     -i ${springfile} \
     -o ${meta.id}_R1.fastq.gz ${meta.id}_R2.fastq.gz \
     -g

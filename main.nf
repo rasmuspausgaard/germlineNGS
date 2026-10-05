@@ -151,9 +151,9 @@ switch (params.panel) {
         break
 
     case "WES":
-        reads_pattern_cram  = "*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.cram"
-        reads_pattern_crai  = "*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*.crai"
-        reads_pattern_fastq = "*{-,.,_}{EV8_ALM,EV8_ONK}{-,.,_}*R{1,2}*{fq,fastq}.gz"
+        reads_pattern_cram  = "*{-,.,_}{EV8,EV8_ALM,EV8_ONK}{-,.,_}*.cram"
+        reads_pattern_crai  = "*{-,.,_}{EV8,EV8_ALM,EV8_ONK}{-,.,_}*.crai"
+        reads_pattern_fastq = "*{-,.,_}{EV8,EV8_ALM,EV8_ONK}{-,.,_}*R{1,2}*{fq,fastq}.gz"
         panelID = "WES_subpanel"
         break
 
